@@ -1,0 +1,22 @@
+{
+  "projectName": "py-storiesxbot",
+  "defaultBranch": "main",
+  "pythonVersion": "3.13",
+  "packageManager": "uv",
+  "instructions": {
+    "setup": [
+      "Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh",
+      "Create virtual environment: uv venv",
+      "Install dependencies: uv pip install -e .",
+      "Copy .env.example to .env and fill in credentials",
+      "Run migrations: alembic upgrade head"
+    ],
+    "development": [
+      "Activate virtual environment: source .venv/bin/activate",
+      "Run tests: pytest",
+      "Format code: ruff format .",
+      "Lint code: ruff check .",
+      "Run bot: python -m src.main"
+    ]
+  }
+}
