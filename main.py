@@ -1,26 +1,25 @@
 import asyncio
-import logging
 
-# from bot.bot import start_bot
-from config.logger import initialize_project_logger
-from config.config import get_settings
+import uvloop
+
+from bot.bot import start_bot
+from config.config import Config, get_config
+from config.logger import get_logger
 from userbot.userbot import start_userbot
 
-initialize_project_logger(__name__)
-LOGGER = logging.getLogger(__name__)
+LOGGER = get_logger(__name__)
 
 
 async def main():
     # Load settings
-    settings = get_settings()
+    settings: Config = get_config()
 
     # Start both bot and userbot
-    # bot_task = asyncio.create_task(start_bot(settings))
+    bot_task = asyncio.create_task(start_bot(settings))
     userbot_task = asyncio.create_task(start_userbot(settings))
 
     try:
-        # await asyncio.gather(bot_task, userbot_task)
-        await asyncio.gather(userbot_task)
+        await asyncio.gather(bot_task, userbot_task)
     except Exception as e:
         LOGGER.exception("Error in main loop: %s", e)
         raise
@@ -28,6 +27,7 @@ async def main():
 
 if __name__ == "__main__":
     try:
+        uvloop.install()
         asyncio.run(main())
     except KeyboardInterrupt:
         LOGGER.info("Bot stopped by user")

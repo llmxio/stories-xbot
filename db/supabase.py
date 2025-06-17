@@ -2,8 +2,7 @@ from typing import Optional
 
 from supabase import Client, create_client
 
-from .config import Config
-from .logger import get_logger
+from config import Config, get_logger
 
 LOGGER = get_logger(__name__)
 

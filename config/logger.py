@@ -8,8 +8,8 @@ from typing import Optional
 def initialize_project_logger(
     name: Optional[str] = None,
     path_dir_where_to_store_logs: str = "logs",
-    is_stdout_debug: bool = True,
-    is_to_propagate_to_root_logger: bool = True,
+    is_stdout_debug: bool = False,
+    is_to_propagate_to_root_logger: bool = False,
 ):
     """
     Initialize a project logger with optional file logging and custom settings.
@@ -83,3 +83,6 @@ def initialize_project_logger(
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     initialize_project_logger(name)
     return logging.getLogger(name)
+
+
+LOGGER = get_logger("root")

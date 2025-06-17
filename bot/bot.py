@@ -2,6 +2,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
+from bot.handlers import get_routers
 from config import Config, get_logger
 
 LOGGER = get_logger(__name__)
@@ -28,4 +29,7 @@ async def start_bot(settings: Config) -> None:
 
 def register_handlers(dp: Dispatcher) -> None:
     """Register all bot handlers."""
-    # TODO: Implement handlers
+    routers = get_routers()
+    for router in routers:
+        dp.include_router(router)
+    LOGGER.info("Registered %d routers", len(routers))

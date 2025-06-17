@@ -1,9 +1,22 @@
 from datetime import datetime
 from typing import List, Optional
 
+from sqlalchemy.orm import Session
 from supabase import Client
 
-from .models import Payment, Profile, Story, User
+from .models import (
+    BlockedUser,
+    BugReport,
+    DownloadQueue,
+    InvalidLinkViolation,
+    Monitor,
+    MonitorSentStory,
+    ProfileRequest,
+    Task,
+    User,
+    UserRequestLog,
+)
+from .schemas import Payment, Profile, Story
 
 
 class BaseRepository:
@@ -83,3 +96,131 @@ class PaymentRepository(BaseRepository):
         """Get all payments for a user."""
         result = await self.client.table("payments").select("*").eq("user_id", user_id).execute()
         return [Payment(**payment) for payment in result.data]
+
+
+def add_blocked_user(session: Session, user: BlockedUser):
+    session.add(user)
+    session.commit()
+    return user
+
+
+def get_blocked_user(session: Session, telegram_id: str):
+    return session.query(BlockedUser).get(telegram_id)
+
+
+def list_blocked_users(session: Session):
+    return session.query(BlockedUser).all()
+
+
+def add_bug_report(session: Session, report: BugReport):
+    session.add(report)
+    session.commit()
+    return report
+
+
+def get_bug_report(session: Session, _id: int):
+    return session.query(BugReport).get(_id)
+
+
+def list_bug_reports(session: Session):
+    return session.query(BugReport).all()
+
+
+def add_download_queue(session: Session, queue: DownloadQueue):
+    session.add(queue)
+    session.commit()
+    return queue
+
+
+def get_download_queue(session: Session, _id: int):
+    return session.query(DownloadQueue).get(_id)
+
+
+def list_download_queues(session: Session):
+    return session.query(DownloadQueue).all()
+
+
+def add_invalid_link_violation(session: Session, violation: InvalidLinkViolation):
+    session.add(violation)
+    session.commit()
+    return violation
+
+
+def get_invalid_link_violation(session: Session, telegram_id: str):
+    return session.query(InvalidLinkViolation).get(telegram_id)
+
+
+def list_invalid_link_violations(session: Session):
+    return session.query(InvalidLinkViolation).all()
+
+
+def add_monitor_sent_story(session: Session, sent_story: MonitorSentStory):
+    session.add(sent_story)
+    session.commit()
+    return sent_story
+
+
+def list_monitor_sent_stories(session: Session):
+    return session.query(MonitorSentStory).all()
+
+
+def add_monitor(session: Session, monitor: Monitor):
+    session.add(monitor)
+    session.commit()
+    return monitor
+
+
+def get_monitor(session: Session, _id: int):
+    return session.query(Monitor).get(_id)
+
+
+def list_monitors(session: Session):
+    return session.query(Monitor).all()
+
+
+def add_profile_request(session: Session, request: ProfileRequest):
+    session.add(request)
+    session.commit()
+    return request
+
+
+def list_profile_requests(session: Session):
+    return session.query(ProfileRequest).all()
+
+
+def add_task(session: Session, task: Task):
+    session.add(task)
+    session.commit()
+    return task
+
+
+def get_task(session: Session, _id: str):
+    return session.query(Task).get(_id)
+
+
+def list_tasks(session: Session):
+    return session.query(Task).all()
+
+
+def add_user_request_log(session: Session, log: UserRequestLog):
+    session.add(log)
+    session.commit()
+    return log
+
+
+def list_user_request_logs(session: Session):
+    return session.query(UserRequestLog).all()
+
+
+def add_user(session: Session, user: User):
+    session.add(user)
+    session.commit()
+    return user
+
+
+def get_user(session: Session, telegram_id: str):
+    return session.query(User).get(telegram_id)
+
+
+def list_users(session: Session):
+    return session.query(User).all()

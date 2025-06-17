@@ -1,56 +1,97 @@
-from datetime import datetime
-from typing import Optional
+import sqlalchemy as sa
+from sqlalchemy.ext.declarative import declarative_base
 
-from pydantic import BaseModel, Field
-
-
-class User(BaseModel):
-    """User model for storing Telegram user information."""
-
-    id: int = Field(..., description="Telegram user ID")
-    username: Optional[str] = Field(None, description="Telegram username")
-    first_name: str = Field(..., description="User's first name")
-    last_name: Optional[str] = Field(None, description="User's last name")
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    is_active: bool = Field(default=True)
-    is_admin: bool = Field(default=False)
+Base = declarative_base()
 
 
-class Story(BaseModel):
-    """Story model for storing story information."""
-
-    id: int = Field(..., description="Story ID")
-    user_id: int = Field(..., description="User ID who posted the story")
-    media_url: str = Field(..., description="URL to the story media")
-    created_at: datetime = Field(default_factory=datetime.now)
-    expires_at: Optional[datetime] = Field(None, description="Story expiration time")
-    is_viewed: bool = Field(default=False)
-    viewed_at: Optional[datetime] = Field(None, description="When the story was viewed")
+class BlockedUser(Base):
+    __tablename__ = "blocked_users"
+    telegram_id = sa.Column(sa.String, primary_key=True)
+    blocked_at = sa.Column(sa.Integer)
+    is_bot = sa.Column(sa.Integer)
 
 
-class Profile(BaseModel):
-    """Profile model for storing profile monitoring information."""
-
-    id: int = Field(..., description="Profile ID")
-    user_id: int = Field(..., description="User ID who is monitoring")
-    target_username: str = Field(..., description="Username being monitored")
-    target_phone: Optional[str] = Field(None, description="Phone number being monitored")
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    is_active: bool = Field(default=True)
-    last_check: Optional[datetime] = Field(None, description="Last time the profile was checked")
+class BugReport(Base):
+    __tablename__ = "bug_reports"
+    id = sa.Column(sa.Integer, primary_key=True)
+    telegram_id = sa.Column(sa.String)
+    username = sa.Column(sa.String)
+    description = sa.Column(sa.String)
+    created_at = sa.Column(sa.Integer)
 
 
-class Payment(BaseModel):
-    """Payment model for storing payment information."""
+class DownloadQueue(Base):
+    __tablename__ = "download_queue"
+    id = sa.Column(sa.Integer, primary_key=True)
+    telegram_id = sa.Column(sa.String)
+    target_username = sa.Column(sa.String)
+    status = sa.Column(sa.String)
+    enqueued_ts = sa.Column(sa.Integer)
+    processed_ts = sa.Column(sa.Integer)
+    error = sa.Column(sa.String)
+    task_details = sa.Column(sa.String)
 
-    id: int = Field(..., description="Payment ID")
-    user_id: int = Field(..., description="User ID who made the payment")
-    amount: float = Field(..., description="Payment amount")
-    currency: str = Field(..., description="Payment currency")
-    status: str = Field(..., description="Payment status")
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    transaction_id: Optional[str] = Field(None, description="Transaction ID")
-    payment_method: str = Field(..., description="Payment method used")
+
+class InvalidLinkViolation(Base):
+    __tablename__ = "invalid_link_violations"
+    telegram_id = sa.Column(sa.String, primary_key=True)
+    count = sa.Column(sa.Integer)
+    suspended_until = sa.Column(sa.Integer)
+
+
+class MonitorSentStory(Base):
+    __tablename__ = "monitor_sent_stories"
+    monitor_id = sa.Column(sa.Integer, primary_key=True)
+    story_id = sa.Column(sa.Integer, primary_key=True)
+    expires_at = sa.Column(sa.Integer)
+
+
+class Monitor(Base):
+    __tablename__ = "monitors"
+    id = sa.Column(sa.Integer, primary_key=True)
+    telegram_id = sa.Column(sa.String)
+    target_username = sa.Column(sa.String)
+    last_checked = sa.Column(sa.Integer)
+    created_at = sa.Column(sa.DateTime(timezone=True))
+
+
+class ProfileRequest(Base):
+    __tablename__ = "profile_requests"
+    telegram_id = sa.Column(sa.String, primary_key=True)
+    target_username = sa.Column(sa.String, primary_key=True)
+    requested_at = sa.Column(sa.Integer)
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+    id = sa.Column(sa.String, primary_key=True)
+    telegram_id = sa.Column(sa.String)
+    status = sa.Column(sa.String)
+    task_details = sa.Column(sa.String)
+    enqueued_ts = sa.Column(sa.Integer)
+    is_premium = sa.Column(sa.Integer)
+    is_bot = sa.Column(sa.Integer)
+    username = sa.Column(sa.String)
+    target_username = sa.Column(sa.String)
+    description = sa.Column(sa.String)
+    created_at = sa.Column(sa.Integer)
+    updated_at = sa.Column(sa.Integer)
+
+
+class UserRequestLog(Base):
+    __tablename__ = "user_request_log"
+    telegram_id = sa.Column(sa.String, primary_key=True)
+    requested_at = sa.Column(sa.Integer, primary_key=True)
+
+
+class User(Base):
+    __tablename__ = "users"
+    telegram_id = sa.Column(sa.String, primary_key=True)
+    username = sa.Column(sa.String)
+    is_bot = sa.Column(sa.Integer)
+    is_premium = sa.Column(sa.Integer)
+    free_trial_used = sa.Column(sa.Integer)
+    premium_until = sa.Column(sa.Integer)
+    pinned_message_id = sa.Column(sa.Integer)
+    pinned_message_updated_at = sa.Column(sa.Integer)
+    created_at = sa.Column(sa.DateTime(timezone=True))

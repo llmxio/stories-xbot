@@ -41,8 +41,9 @@ def upgrade() -> None:
         ),
         sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
         sa.Column("is_admin", sa.Boolean(), server_default="false", nullable=False),
+        sa.Column("is_premium", sa.Boolean(), server_default="false", nullable=False),
         sa.PrimaryKeyConstraint("id"),
-    )
+    )  # type: ignore[attr-defined]
 
     # Create stories table
     op.create_table(
@@ -64,7 +65,7 @@ def upgrade() -> None:
             ["users.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
-    )
+    )  # type: ignore[attr-defined]
 
     # Create profiles table
     op.create_table(
@@ -92,7 +93,7 @@ def upgrade() -> None:
             ["users.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
-    )
+    )  # type: ignore[attr-defined]
 
     # Create payments table
     op.create_table(
@@ -121,9 +122,104 @@ def upgrade() -> None:
             ["users.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
-    )
+    )  # type: ignore[attr-defined]
 
-    # Users table indexes
+    # Create blocked_users table
+    op.create_table(
+        "blocked_users",
+        sa.Column("telegram_id", sa.String(), nullable=False),
+        sa.Column("blocked_at", sa.Integer()),
+        sa.Column("is_bot", sa.Integer()),
+        sa.PrimaryKeyConstraint("telegram_id"),
+    )  # type: ignore[attr-defined]
+
+    # Create bug_reports table
+    op.create_table(
+        "bug_reports",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("telegram_id", sa.String()),
+        sa.Column("username", sa.String()),
+        sa.Column("description", sa.String()),
+        sa.Column("created_at", sa.Integer()),
+        sa.PrimaryKeyConstraint("id"),
+    )  # type: ignore[attr-defined]
+
+    # Create download_queue table
+    op.create_table(
+        "download_queue",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("telegram_id", sa.String()),
+        sa.Column("target_username", sa.String()),
+        sa.Column("status", sa.String()),
+        sa.Column("enqueued_ts", sa.Integer()),
+        sa.Column("processed_ts", sa.Integer()),
+        sa.Column("error", sa.String()),
+        sa.Column("task_details", sa.String()),
+        sa.PrimaryKeyConstraint("id"),
+    )  # type: ignore[attr-defined]
+
+    # Create invalid_link_violations table
+    op.create_table(
+        "invalid_link_violations",
+        sa.Column("telegram_id", sa.String(), nullable=False),
+        sa.Column("count", sa.Integer()),
+        sa.Column("suspended_until", sa.Integer()),
+        sa.PrimaryKeyConstraint("telegram_id"),
+    )  # type: ignore[attr-defined]
+
+    # Create monitor_sent_stories table
+    op.create_table(  # type: ignore
+        "monitor_sent_stories",
+        sa.Column("monitor_id", sa.Integer()),
+        sa.Column("story_id", sa.Integer()),
+        sa.Column("expires_at", sa.Integer()),
+    )  # type: ignore
+
+    # Create monitors table
+    op.create_table(
+        "monitors",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("telegram_id", sa.String()),
+        sa.Column("target_username", sa.String()),
+        sa.Column("last_checked", sa.Integer()),
+        sa.Column("created_at", sa.DateTime(timezone=True)),
+        sa.PrimaryKeyConstraint("id"),
+    )  # type: ignore[attr-defined]
+
+    # Create profile_requests table
+    op.create_table(
+        "profile_requests",
+        sa.Column("telegram_id", sa.String()),
+        sa.Column("target_username", sa.String()),
+        sa.Column("requested_at", sa.Integer()),
+    )  # type: ignore[attr-defined]
+
+    # Create tasks table
+    op.create_table(
+        "tasks",
+        sa.Column("id", sa.String(), nullable=False),
+        sa.Column("telegram_id", sa.String()),
+        sa.Column("status", sa.String()),
+        sa.Column("task_details", sa.String()),
+        sa.Column("enqueued_ts", sa.Integer()),
+        sa.Column("is_premium", sa.Integer()),
+        sa.Column("is_bot", sa.Integer()),
+        sa.Column("username", sa.String()),
+        sa.Column("target_username", sa.String()),
+        sa.Column("description", sa.String()),
+        sa.Column("created_at", sa.Integer()),
+        sa.Column("updated_at", sa.Integer()),
+        sa.PrimaryKeyConstraint("id"),
+    )  # type: ignore[attr-defined]
+
+    # Create user_request_log table
+    op.create_table(
+        "user_request_log",
+        sa.Column("telegram_id", sa.String()),
+        sa.Column("requested_at", sa.Integer()),
+    )  # type: ignore[attr-defined]
+
+    # After all tables are created, create indexes
     op.create_index(
         "ix_users_username",
         "users",
@@ -134,14 +230,12 @@ def upgrade() -> None:
     op.create_index("ix_users_is_active", "users", ["is_active"])  # type: ignore[attr-defined]
     op.create_index("ix_users_is_admin", "users", ["is_admin"])  # type: ignore[attr-defined]
 
-    # Stories table indexes
     op.create_index("ix_stories_user_id", "stories", ["user_id"])  # type: ignore[attr-defined]
     op.create_index("ix_stories_created_at", "stories", ["created_at"])  # type: ignore[attr-defined]
     op.create_index("ix_stories_expires_at", "stories", ["expires_at"])  # type: ignore[attr-defined]
     op.create_index("ix_stories_is_viewed", "stories", ["is_viewed"])  # type: ignore[attr-defined]
     op.create_index("ix_stories_user_active", "stories", ["user_id", "is_viewed", "created_at"])  # type: ignore[attr-defined]
 
-    # Profiles table indexes
     op.create_index("ix_profiles_user_id", "profiles", ["user_id"])  # type: ignore[attr-defined]
     op.create_index("ix_profiles_target_username", "profiles", ["target_username"])  # type: ignore[attr-defined]
     op.create_index(
@@ -154,7 +248,6 @@ def upgrade() -> None:
     op.create_index("ix_profiles_last_check", "profiles", ["last_check"])  # type: ignore[attr-defined]
     op.create_index("ix_profiles_active_monitoring", "profiles", ["is_active", "last_check"])  # type: ignore[attr-defined]
 
-    # Payments table indexes
     op.create_index("ix_payments_user_id", "payments", ["user_id"])  # type: ignore[attr-defined]
     op.create_index("ix_payments_status", "payments", ["status"])  # type: ignore[attr-defined]
     op.create_index("ix_payments_created_at", "payments", ["created_at"])  # type: ignore[attr-defined]
@@ -195,6 +288,17 @@ def downgrade() -> None:
     op.drop_index("ix_users_is_admin")  # type: ignore[attr-defined]
     op.drop_index("ix_users_is_active")  # type: ignore[attr-defined]
     op.drop_index("ix_users_username")  # type: ignore[attr-defined]
+
+    # Drop new tables
+    op.drop_table("user_request_log")
+    op.drop_table("tasks")
+    op.drop_table("profile_requests")
+    op.drop_table("monitors")
+    op.drop_table("monitor_sent_stories")
+    op.drop_table("invalid_link_violations")
+    op.drop_table("download_queue")
+    op.drop_table("bug_reports")
+    op.drop_table("blocked_users")
 
     # Drop tables
     op.drop_table("payments")

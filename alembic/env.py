@@ -1,3 +1,7 @@
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import asyncio
 from logging.config import fileConfig
 
@@ -6,12 +10,14 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from config.config import load_settings
+from config import get_config
 from db.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+print(config)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -19,8 +25,8 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Load settings and set the database URL
-settings = load_settings()
-config.set_main_option("sqlalchemy.url", settings.db.url)
+settings = get_config()
+config.set_main_option("sqlalchemy.url", settings.SQLALCHEMY_URL)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

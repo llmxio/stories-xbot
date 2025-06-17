@@ -15,7 +15,7 @@ py-storiesxbot/
 │   └── userbot.py          # Userbot logic
 ├── config/                 # Configuration and settings
 │   ├── settings.py         # Application settings (pydantic)
-│   ├── logger.py           # Logging setup (loguru, stdlib)
+│   ├── logger.py           # Sets up both loguru and stdlib logging for the project
 │   └── supabase.py         # Supabase/PostgreSQL config
 ├── db/                     # Database models and repository
 │   ├── models.py           # SQLAlchemy models
