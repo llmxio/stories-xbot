@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-import os
 import sys
 from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
-
-from alembic import command
-from alembic.config import Config
 
 
 def run_migrations():
