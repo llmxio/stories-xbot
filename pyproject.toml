@@ -21,7 +21,6 @@ dependencies = [
   "ruff>=0.11.13",
   "pytest>=8.4.0",
   "uvloop>=0.21.0",
-  "psycopg[bin]>=3.2.9",
   "psycopg2[bin]>=2.9.10",
 ]
 
