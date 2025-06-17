@@ -37,6 +37,7 @@ async def start_userbot(settings: Config) -> None:
         await app.send_message("me", msg)
 
         LOGGER.info("Self-check message sent to Saved Messages: %s", msg)
+        LOGGER.info("pyrogram key: %s", await app.export_session_string())
 
         await idle()
     except Exception as e:

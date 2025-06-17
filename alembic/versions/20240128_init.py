@@ -1,6 +1,6 @@
-"""Initial migration
+"""Initial migration with tables and indexes
 
-Revision ID: 20240128_initial
+Revision ID: 20240128_init
 Revises:
 Create Date: 2024-01-28 00:00:00.000000
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20240128_initial"
+revision: str = "20240128_init"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -123,8 +123,80 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
 
+    # Users table indexes
+    op.create_index(
+        "ix_users_username",
+        "users",
+        ["username"],
+        unique=True,
+        postgresql_where=sa.text("username IS NOT NULL"),
+    )  # type: ignore[attr-defined]
+    op.create_index("ix_users_is_active", "users", ["is_active"])  # type: ignore[attr-defined]
+    op.create_index("ix_users_is_admin", "users", ["is_admin"])  # type: ignore[attr-defined]
+
+    # Stories table indexes
+    op.create_index("ix_stories_user_id", "stories", ["user_id"])  # type: ignore[attr-defined]
+    op.create_index("ix_stories_created_at", "stories", ["created_at"])  # type: ignore[attr-defined]
+    op.create_index("ix_stories_expires_at", "stories", ["expires_at"])  # type: ignore[attr-defined]
+    op.create_index("ix_stories_is_viewed", "stories", ["is_viewed"])  # type: ignore[attr-defined]
+    op.create_index("ix_stories_user_active", "stories", ["user_id", "is_viewed", "created_at"])  # type: ignore[attr-defined]
+
+    # Profiles table indexes
+    op.create_index("ix_profiles_user_id", "profiles", ["user_id"])  # type: ignore[attr-defined]
+    op.create_index("ix_profiles_target_username", "profiles", ["target_username"])  # type: ignore[attr-defined]
+    op.create_index(
+        "ix_profiles_target_phone",
+        "profiles",
+        ["target_phone"],
+        postgresql_where=sa.text("target_phone IS NOT NULL"),
+    )  # type: ignore[attr-defined]
+    op.create_index("ix_profiles_is_active", "profiles", ["is_active"])  # type: ignore[attr-defined]
+    op.create_index("ix_profiles_last_check", "profiles", ["last_check"])  # type: ignore[attr-defined]
+    op.create_index("ix_profiles_active_monitoring", "profiles", ["is_active", "last_check"])  # type: ignore[attr-defined]
+
+    # Payments table indexes
+    op.create_index("ix_payments_user_id", "payments", ["user_id"])  # type: ignore[attr-defined]
+    op.create_index("ix_payments_status", "payments", ["status"])  # type: ignore[attr-defined]
+    op.create_index("ix_payments_created_at", "payments", ["created_at"])  # type: ignore[attr-defined]
+    op.create_index(
+        "ix_payments_transaction_id",
+        "payments",
+        ["transaction_id"],
+        unique=True,
+        postgresql_where=sa.text("transaction_id IS NOT NULL"),
+    )  # type: ignore[attr-defined]
+    op.create_index("ix_payments_user_status", "payments", ["user_id", "status", "created_at"])  # type: ignore[attr-defined]
+
 
 def downgrade() -> None:
+    # Drop payment indexes
+    op.drop_index("ix_payments_user_status")  # type: ignore[attr-defined]
+    op.drop_index("ix_payments_transaction_id")  # type: ignore[attr-defined]
+    op.drop_index("ix_payments_created_at")  # type: ignore[attr-defined]
+    op.drop_index("ix_payments_status")  # type: ignore[attr-defined]
+    op.drop_index("ix_payments_user_id")  # type: ignore[attr-defined]
+
+    # Drop profile indexes
+    op.drop_index("ix_profiles_active_monitoring")  # type: ignore[attr-defined]
+    op.drop_index("ix_profiles_last_check")  # type: ignore[attr-defined]
+    op.drop_index("ix_profiles_is_active")  # type: ignore[attr-defined]
+    op.drop_index("ix_profiles_target_phone")  # type: ignore[attr-defined]
+    op.drop_index("ix_profiles_target_username")  # type: ignore[attr-defined]
+    op.drop_index("ix_profiles_user_id")  # type: ignore[attr-defined]
+
+    # Drop story indexes
+    op.drop_index("ix_stories_user_active")  # type: ignore[attr-defined]
+    op.drop_index("ix_stories_is_viewed")  # type: ignore[attr-defined]
+    op.drop_index("ix_stories_expires_at")  # type: ignore[attr-defined]
+    op.drop_index("ix_stories_created_at")  # type: ignore[attr-defined]
+    op.drop_index("ix_stories_user_id")  # type: ignore[attr-defined]
+
+    # Drop user indexes
+    op.drop_index("ix_users_is_admin")  # type: ignore[attr-defined]
+    op.drop_index("ix_users_is_active")  # type: ignore[attr-defined]
+    op.drop_index("ix_users_username")  # type: ignore[attr-defined]
+
+    # Drop tables
     op.drop_table("payments")
     op.drop_table("profiles")
     op.drop_table("stories")
