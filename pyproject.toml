@@ -1,5 +1,5 @@
 [project]
-name = "py-storiesxbot"
+name = "telestories"
 version = "0.1.0"
 description = "Telegram bot and userbot implementation using PyrogramMod and aiogram"
 readme = "README.md"
@@ -10,7 +10,6 @@ dependencies = [
   "sqlalchemy>=2.0.0",
   "python-dotenv>=1.0.0",
   "pydantic>=2.0.0",
-  "loguru>=0.7.0",
   "alembic>=1.12.0",
   "asyncpg>=0.29.0",
   "pydantic-settings>=2.9.1",
@@ -18,13 +17,16 @@ dependencies = [
   "postgrest>=0.13.0",
   "gotrue>=1.1.0",
   "realtime>=1.0.0",
+  "tgcrypto>=1.2.5",
+  "ruff>=0.11.13",
+  "pytest>=8.4.0",
 ]
 
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=src"
+addopts = "-v"
 
 [tool.ruff]
 line-length = 100
