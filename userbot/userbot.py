@@ -1,5 +1,6 @@
 import platform
 
+import uvloop
 from pyrogram import __version__ as PYROGRAM_VERSION
 from pyrogram.client import Client
 from pyrogram.sync import idle
@@ -9,14 +10,15 @@ from config import Config, get_logger
 LOGGER = get_logger(__name__)
 
 
-async def start_userbot(settings: Config) -> None:
+async def start_userbot(config: Config) -> None:
     """Start the Telegram userbot with interactive authentication and self-check."""
     # Use a fixed session file name for compatibility with the original project
-    session_name = "userbot"
+    uvloop.install()
+
     app = Client(
-        name=session_name,
-        api_id=settings.USERBOT_API_ID,
-        api_hash=settings.USERBOT_API_HASH,
+        name=config.USERBOT_SESSION_NAME,
+        api_id=config.USERBOT_API_ID,
+        api_hash=config.USERBOT_API_HASH,
     )
 
     try:
@@ -52,10 +54,10 @@ def register_handlers(app: Client) -> None:
     pass
 
 
-if __name__ == "__main__":
-    import asyncio
+# if __name__ == "__main__":
+#     import asyncio
 
-    from config import get_config
+#     from config import get_config
 
-    local_config = get_config()
-    asyncio.run(start_userbot(settings=local_config))
+#     local_config = get_config()
+#     asyncio.run(start_userbot(config=local_config))

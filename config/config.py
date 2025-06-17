@@ -9,6 +9,7 @@ class Config(BaseSettings):
     USERBOT_API_ID: int = 0
     USERBOT_API_HASH: str = ""
     USERBOT_PHONE_NUMBER: str = ""
+    USERBOT_SESSION_NAME: str = "userbot"  # Session name for userbot
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
     # Add more fields as needed
