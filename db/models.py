@@ -9,7 +9,7 @@ Base = declarative_base()
 class BlockedUser(Base):
     __tablename__ = "blocked_users"
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
-    blocked_at = sa.Column(sa.Integer)
+    blocked_at = sa.Column(sa.DateTime, default=datetime.now)
     is_bot = sa.Column(sa.Integer)
 
 
@@ -19,7 +19,7 @@ class BugReport(Base):
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     username = sa.Column(sa.String)
     description = sa.Column(sa.String)
-    created_at = sa.Column(sa.Integer)
+    created_at = sa.Column(sa.DateTime, default=datetime.now)
 
 
 class DownloadQueue(Base):
@@ -28,8 +28,8 @@ class DownloadQueue(Base):
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     target_username = sa.Column(sa.String)
     status = sa.Column(sa.String)
-    enqueued_ts = sa.Column(sa.Integer)
-    processed_ts = sa.Column(sa.Integer)
+    enqueued_ts = sa.Column(sa.DateTime, default=datetime.now)
+    processed_ts = sa.Column(sa.DateTime)
     error = sa.Column(sa.String)
     task_details = sa.Column(sa.String)
 
@@ -38,14 +38,14 @@ class InvalidLinkViolation(Base):
     __tablename__ = "invalid_link_violations"
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
     count = sa.Column(sa.Integer)
-    suspended_until = sa.Column(sa.Integer)
+    suspended_until = sa.Column(sa.DateTime)
 
 
 class MonitorSentStory(Base):
     __tablename__ = "monitor_sent_stories"
     monitor_id = sa.Column(sa.BigInteger, primary_key=True)
     story_id = sa.Column(sa.BigInteger, primary_key=True)
-    expires_at = sa.Column(sa.Integer)
+    expires_at = sa.Column(sa.DateTime)
 
 
 class Monitor(Base):
@@ -53,15 +53,15 @@ class Monitor(Base):
     id = sa.Column(sa.BigInteger, primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     target_username = sa.Column(sa.String)
-    last_checked = sa.Column(sa.Integer)
-    created_at = sa.Column(sa.DateTime(timezone=True))
+    last_checked = sa.Column(sa.DateTime)
+    created_at = sa.Column(sa.DateTime, default=datetime.now)
 
 
 class ProfileRequest(Base):
     __tablename__ = "profile_requests"
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
     target_username = sa.Column(sa.String, primary_key=True)
-    requested_at = sa.Column(sa.Integer)
+    requested_at = sa.Column(sa.DateTime, default=datetime.now)
 
 
 class Task(Base):
@@ -70,20 +70,20 @@ class Task(Base):
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     status = sa.Column(sa.String)
     task_details = sa.Column(sa.String)
-    enqueued_ts = sa.Column(sa.Integer)
+    enqueued_ts = sa.Column(sa.DateTime, default=datetime.now)
     is_premium = sa.Column(sa.Integer)
     is_bot = sa.Column(sa.Integer)
     username = sa.Column(sa.String)
     target_username = sa.Column(sa.String)
     description = sa.Column(sa.String)
-    created_at = sa.Column(sa.Integer)
-    updated_at = sa.Column(sa.Integer)
+    created_at = sa.Column(sa.DateTime, default=datetime.now)
+    updated_at = sa.Column(sa.DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 class UserRequestLog(Base):
     __tablename__ = "user_request_log"
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
-    requested_at = sa.Column(sa.Integer, primary_key=True)
+    requested_at = sa.Column(sa.DateTime, default=datetime.now, primary_key=True)
 
 
 class User(Base):

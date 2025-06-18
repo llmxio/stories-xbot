@@ -64,7 +64,7 @@ class User(UserBase):
 
 class BlockedUser(BaseModel):
     chat_id: int = Field(..., description="Chat ID")
-    blocked_at: int = Field(..., description="Blocked at")
+    blocked_at: datetime = Field(default_factory=datetime.now, description="Blocked at")
     is_bot: int = Field(..., description="Is bot")
 
     class Config:
@@ -76,7 +76,7 @@ class BugReport(BaseModel):
     chat_id: int = Field(..., description="Chat ID")
     username: str = Field(..., description="Username")
     description: str = Field(..., description="Description")
-    created_at: int = Field(..., description="Created at")
+    created_at: datetime = Field(default_factory=datetime.now, description="Created at")
 
     class Config:
         from_attributes = True
@@ -87,10 +87,10 @@ class DownloadQueue(BaseModel):
     chat_id: int = Field(..., description="Chat ID")
     target_username: str = Field(..., description="Target username")
     status: str = Field(..., description="Status")
-    enqueued_ts: int = Field(..., description="Enqueued timestamp")
-    processed_ts: int = Field(..., description="Processed timestamp")
-    error: str = Field(..., description="Error")
-    task_details: str = Field(..., description="Task details")
+    enqueued_ts: datetime = Field(default_factory=datetime.now, description="Enqueued timestamp")
+    processed_ts: Optional[datetime] = Field(None, description="Processed timestamp")
+    error: Optional[str] = Field(None, description="Error message")
+    task_details: Optional[str] = Field(None, description="Task details")
 
     class Config:
         from_attributes = True
@@ -99,7 +99,7 @@ class DownloadQueue(BaseModel):
 class InvalidLinkViolation(BaseModel):
     chat_id: int = Field(..., description="Chat ID")
     count: int = Field(..., description="Count")
-    suspended_until: int = Field(..., description="Suspended until")
+    suspended_until: datetime = Field(..., description="Suspended until")
 
     class Config:
         from_attributes = True
@@ -108,7 +108,7 @@ class InvalidLinkViolation(BaseModel):
 class MonitorSentStory(BaseModel):
     monitor_id: int = Field(..., description="Monitor ID")
     story_id: int = Field(..., description="Story ID")
-    expires_at: int = Field(..., description="Expires at")
+    expires_at: datetime = Field(..., description="Expires at")
 
     class Config:
         from_attributes = True
@@ -118,7 +118,7 @@ class Monitor(BaseModel):
     id: int = Field(..., description="Monitor ID")
     chat_id: int = Field(..., description="Chat ID")
     target_username: str = Field(..., description="Target username")
-    last_checked: int = Field(..., description="Last checked")
+    last_checked: datetime = Field(..., description="Last checked")
     created_at: datetime = Field(default_factory=datetime.now)
 
     class Config:
@@ -128,7 +128,7 @@ class Monitor(BaseModel):
 class ProfileRequest(BaseModel):
     chat_id: int = Field(..., description="Chat ID")
     target_username: str = Field(..., description="Target username")
-    requested_at: int = Field(..., description="Requested at")
+    requested_at: datetime = Field(default_factory=datetime.now, description="Requested at")
 
     class Config:
         from_attributes = True
@@ -139,14 +139,14 @@ class Task(BaseModel):
     chat_id: int = Field(..., description="Chat ID")
     status: str = Field(..., description="Status")
     task_details: str = Field(..., description="Task details")
-    enqueued_ts: int = Field(..., description="Enqueued timestamp")
+    enqueued_ts: datetime = Field(default_factory=datetime.now, description="Enqueued timestamp")
     is_premium: int = Field(..., description="Is premium")
     is_bot: int = Field(..., description="Is bot")
     username: str = Field(..., description="Username")
     target_username: str = Field(..., description="Target username")
     description: str = Field(..., description="Description")
-    created_at: int = Field(..., description="Created at")
-    updated_at: int = Field(..., description="Updated at")
+    created_at: datetime = Field(default_factory=datetime.now, description="Created at")
+    updated_at: datetime = Field(default_factory=datetime.now, description="Updated at")
 
     class Config:
         from_attributes = True
@@ -154,7 +154,7 @@ class Task(BaseModel):
 
 class UserRequestLog(BaseModel):
     chat_id: int = Field(..., description="Chat ID")
-    requested_at: int = Field(..., description="Requested at")
+    requested_at: datetime = Field(default_factory=datetime.now, description="Requested at")
 
     class Config:
         from_attributes = True
