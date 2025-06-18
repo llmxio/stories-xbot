@@ -21,14 +21,14 @@ dependencies = [
   "ruff>=0.11.13",
   "pytest>=8.4.0",
   "uvloop>=0.21.0",
-  "psycopg2[bin]>=2.9.10",
+  "psycopg2>=2.9.10",
 ]
-
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v"
+pythonpath = "."
 
 [tool.ruff]
 line-length = 100

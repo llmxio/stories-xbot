@@ -69,7 +69,7 @@ class UserMiddleware(BaseMiddleware):
 
         # Save user information
         try:
-            await save_user(self.session, event.from_user)
+            save_user(self.session, event.from_user)
         except Exception as e:
             logger.exception("Failed to save user: %s", e)
 

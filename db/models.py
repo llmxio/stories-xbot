@@ -1,5 +1,8 @@
+from datetime import datetime
+
 import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
@@ -84,14 +87,11 @@ class UserRequestLog(Base):
     requested_at = sa.Column(sa.Integer, primary_key=True)
 
 
-class User(Base):
+class UserDB(Base):
     __tablename__ = "users"
-    telegram_id = sa.Column(sa.String, primary_key=True)
-    username = sa.Column(sa.String)
-    is_bot = sa.Column(sa.Integer)
-    is_premium = sa.Column(sa.Integer)
-    free_trial_used = sa.Column(sa.Integer)
-    premium_until = sa.Column(sa.Integer)
-    pinned_message_id = sa.Column(sa.Integer)
-    pinned_message_updated_at = sa.Column(sa.Integer)
-    created_at = sa.Column(sa.DateTime(timezone=True))
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    password = Column(String)
+    created_at = Column(DateTime, default=datetime.now)

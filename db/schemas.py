@@ -41,3 +41,20 @@ class Payment(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.now)
     transaction_id: Optional[str] = Field(None, description="Transaction ID")
     payment_method: str = Field(..., description="Payment method used")
+
+
+class UserBase(BaseModel):
+    username: str
+    email: str
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class User(UserBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

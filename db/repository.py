@@ -4,7 +4,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from supabase import Client
 
-from .models import (
+from db.models import (
     BlockedUser,
     BugReport,
     DownloadQueue,
@@ -13,10 +13,10 @@ from .models import (
     MonitorSentStory,
     ProfileRequest,
     Task,
-    User,
+    UserDB,
     UserRequestLog,
 )
-from .schemas import Payment, Profile, Story
+from db.schemas import Payment, Profile, Story, User, UserCreate
 
 
 class BaseRepository:
@@ -24,23 +24,36 @@ class BaseRepository:
         self.client = client
 
 
-class UserRepository(BaseRepository):
-    async def create(self, user: User) -> User:
-        """Create a new user."""
-        data = user.model_dump()
-        result = await self.client.table("users").insert(data).execute()
-        return User(**result.data[0])
+class UserRepository:
+    """Repository for user-related database operations."""
 
-    async def get_by_id(self, user_id: int) -> Optional[User]:
-        """Get user by ID."""
-        result = await self.client.table("users").select("*").eq("id", user_id).execute()
-        return User(**result.data[0]) if result.data else None
+    def __init__(self, db: Session):
+        self.db = db
 
-    async def update(self, user: User) -> User:
-        """Update user information."""
-        data = user.model_dump()
-        result = await self.client.table("users").update(data).eq("id", user.id).execute()
-        return User(**result.data[0])
+    def create_user(self, user: UserCreate) -> User:
+        """Create a new user in the database."""
+        db_user = UserDB(
+            username=user.username,
+            email=user.email,
+            password=user.password,
+            created_at=datetime.now(),
+        )
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        return User.model_validate(db_user)
+
+    def get_user(self, user_id: int) -> Optional[User]:
+        """Retrieve a user by ID from the database."""
+        db_user = self.db.query(UserDB).filter(UserDB.id == user_id).first()
+        if db_user:
+            return User.model_validate(db_user)
+        return None
+
+    def list_users(self) -> List[User]:
+        """List all users in the database."""
+        db_users = self.db.query(UserDB).all()
+        return [User.model_validate(u) for u in db_users]
 
 
 class StoryRepository(BaseRepository):
@@ -229,7 +242,7 @@ def list_users(session: Session):
 def block_user(session: Session, telegram_id: str, is_bot: bool = False) -> BlockedUser:
     """Block a user by their Telegram ID."""
     user = BlockedUser(
-        telegram_id=telegram_id, is_bot=is_bot, blocked_at=int(datetime.utcnow().timestamp())
+        telegram_id=telegram_id, is_bot=is_bot, blocked_at=int(datetime.now().timestamp())
     )
     session.add(user)
     session.commit()
@@ -248,8 +261,8 @@ def is_user_temporarily_suspended(session: Session, telegram_id: str) -> bool:
     if not violation:
         return False
     # Check if suspension period has passed
-    now = int(datetime.utcnow().timestamp())
-    return violation.suspended_until > now
+    now = int(datetime.now().timestamp())
+    return bool(violation.suspended_until > now)
 
 
 def get_suspension_remaining(session: Session, telegram_id: str) -> int:
@@ -257,7 +270,7 @@ def get_suspension_remaining(session: Session, telegram_id: str) -> int:
     violation = session.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
     if not violation:
         return 0
-    now = int(datetime.utcnow().timestamp())
+    now = int(datetime.now().timestamp())
     return max(0, violation.suspended_until - now)
 
 
@@ -273,3 +286,8 @@ def save_user(session: Session, user: User) -> User:
         session.add(user)
         session.commit()
         return user
+
+
+def get_status_text() -> str:
+    """Get admin status text."""
+    return "Status not implemented yet."

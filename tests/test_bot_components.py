@@ -33,7 +33,7 @@ def test_middlewares():
 def test_handlers():
     """Test handlers structure."""
     routers = get_routers()
-    assert len(routers) == 2
+    assert len(routers) == 3
     assert all(hasattr(router, "include_router") for router in routers)
     print("✓ Handlers test passed")
 
