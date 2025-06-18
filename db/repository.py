@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
-from supabase import Client
 
 from db.models import (
     BlockedUser,
@@ -16,23 +15,22 @@ from db.models import (
     UserDB,
     UserRequestLog,
 )
+
 from db.schemas import Payment, Profile, Story, User, UserCreate
 
 
 class BaseRepository:
-    def __init__(self, client: Client):
-        self.client = client
-
-
-class UserRepository:
-    """Repository for user-related database operations."""
-
     def __init__(self, db: Session):
         self.db = db
+
+
+class UserRepository(BaseRepository):
+    """Repository for user-related database operations."""
 
     def create_user(self, user: UserCreate) -> User:
         """Create a new user in the database."""
         db_user = UserDB(
+            telegram_id=user.telegram_id,
             username=user.username,
             email=user.email,
             password=user.password,
@@ -55,22 +53,76 @@ class UserRepository:
         db_users = self.db.query(UserDB).all()
         return [User.model_validate(u) for u in db_users]
 
+    def add_user(self, user: User):
+        self.db.add(user)
+        self.db.commit()
+        return user
+
+    def get_user_by_telegram_id(self, telegram_id: str):
+        return self.db.query(User).get(telegram_id)
+
+    def list_all_users(self):
+        return self.db.query(User).all()
+
+    def block_user(self, telegram_id: str, is_bot: bool = False) -> BlockedUser:
+        """Block a user by their Telegram ID."""
+        user = BlockedUser(
+            telegram_id=telegram_id, is_bot=is_bot, blocked_at=int(datetime.now().timestamp())
+        )
+        self.db.add(user)
+        self.db.commit()
+        return user
+
+    def is_user_blocked(self, telegram_id: str) -> bool:
+        """Check if a user is blocked."""
+        result = self.db.query(BlockedUser).filter_by(telegram_id=telegram_id).first()
+        return result is not None
+
+    def is_user_temporarily_suspended(self, telegram_id: str) -> bool:
+        """Check if a user is temporarily suspended."""
+        violation = self.db.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
+        if not violation:
+            return False
+        now = int(datetime.now().timestamp())
+        return bool(violation.suspended_until > now)
+
+    def get_suspension_remaining(self, telegram_id: str) -> int:
+        """Get remaining suspension time in seconds."""
+        violation = self.db.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
+        if not violation:
+            return 0
+        now = int(datetime.now().timestamp())
+        return max(0, violation.suspended_until - now)
+
+    def save_user(self, user: User) -> User:
+        """Save or update a user."""
+        existing = self.db.query(User).filter_by(telegram_id=str(user.id)).first()
+        if existing:
+            for key, value in user.model_dump().items():
+                setattr(existing, key, value)
+            self.db.commit()
+            return existing
+        else:
+            self.db.add(user)
+            self.db.commit()
+            return user
+
 
 class StoryRepository(BaseRepository):
     async def create(self, story: Story) -> Story:
         """Create a new story record."""
         data = story.model_dump()
-        result = await self.client.table("stories").insert(data).execute()
+        result = await self.db.table("stories").insert(data).execute()
         return Story(**result.data[0])
 
     async def get_by_id(self, story_id: int) -> Optional[Story]:
         """Get story by ID."""
-        result = await self.client.table("stories").select("*").eq("id", story_id).execute()
+        result = await self.db.table("stories").select("*").eq("id", story_id).execute()
         return Story(**result.data[0]) if result.data else None
 
     async def get_active_stories(self) -> List[Story]:
         """Get all active stories."""
-        result = await self.client.table("stories").select("*").eq("is_viewed", False).execute()
+        result = await self.db.table("stories").select("*").eq("is_viewed", False).execute()
         return [Story(**story) for story in result.data]
 
 
@@ -78,18 +130,18 @@ class ProfileRepository(BaseRepository):
     async def create(self, profile: Profile) -> Profile:
         """Create a new profile monitoring record."""
         data = profile.model_dump()
-        result = await self.client.table("profiles").insert(data).execute()
+        result = await self.db.table("profiles").insert(data).execute()
         return Profile(**result.data[0])
 
     async def get_by_user_id(self, user_id: int) -> List[Profile]:
         """Get all profiles monitored by a user."""
-        result = await self.client.table("profiles").select("*").eq("user_id", user_id).execute()
+        result = await self.db.table("profiles").select("*").eq("user_id", user_id).execute()
         return [Profile(**profile) for profile in result.data]
 
     async def update_last_check(self, profile_id: int) -> Profile:
         """Update the last check time for a profile."""
-        data = {"last_check": datetime.utcnow()}
-        result = await self.client.table("profiles").update(data).eq("id", profile_id).execute()
+        data = {"last_check": datetime.now()}
+        result = await self.db.table("profiles").update(data).eq("id", profile_id).execute()
         return Profile(**result.data[0])
 
 
@@ -97,17 +149,17 @@ class PaymentRepository(BaseRepository):
     async def create(self, payment: Payment) -> Payment:
         """Create a new payment record."""
         data = payment.model_dump()
-        result = await self.client.table("payments").insert(data).execute()
+        result = await self.db.table("payments").insert(data).execute()
         return Payment(**result.data[0])
 
     async def get_by_id(self, payment_id: int) -> Optional[Payment]:
         """Get payment by ID."""
-        result = await self.client.table("payments").select("*").eq("id", payment_id).execute()
+        result = await self.db.table("payments").select("*").eq("id", payment_id).execute()
         return Payment(**result.data[0]) if result.data else None
 
     async def get_by_user_id(self, user_id: int) -> List[Payment]:
         """Get all payments for a user."""
-        result = await self.client.table("payments").select("*").eq("user_id", user_id).execute()
+        result = await self.db.table("payments").select("*").eq("user_id", user_id).execute()
         return [Payment(**payment) for payment in result.data]
 
 
@@ -223,69 +275,6 @@ def add_user_request_log(session: Session, log: UserRequestLog):
 
 def list_user_request_logs(session: Session):
     return session.query(UserRequestLog).all()
-
-
-def add_user(session: Session, user: User):
-    session.add(user)
-    session.commit()
-    return user
-
-
-def get_user(session: Session, telegram_id: str):
-    return session.query(User).get(telegram_id)
-
-
-def list_users(session: Session):
-    return session.query(User).all()
-
-
-def block_user(session: Session, telegram_id: str, is_bot: bool = False) -> BlockedUser:
-    """Block a user by their Telegram ID."""
-    user = BlockedUser(
-        telegram_id=telegram_id, is_bot=is_bot, blocked_at=int(datetime.now().timestamp())
-    )
-    session.add(user)
-    session.commit()
-    return user
-
-
-def is_user_blocked(session: Session, telegram_id: str) -> bool:
-    """Check if a user is blocked."""
-    result = session.query(BlockedUser).filter_by(telegram_id=telegram_id).first()
-    return result is not None
-
-
-def is_user_temporarily_suspended(session: Session, telegram_id: str) -> bool:
-    """Check if a user is temporarily suspended."""
-    violation = session.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
-    if not violation:
-        return False
-    # Check if suspension period has passed
-    now = int(datetime.now().timestamp())
-    return bool(violation.suspended_until > now)
-
-
-def get_suspension_remaining(session: Session, telegram_id: str) -> int:
-    """Get remaining suspension time in seconds."""
-    violation = session.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
-    if not violation:
-        return 0
-    now = int(datetime.now().timestamp())
-    return max(0, violation.suspended_until - now)
-
-
-def save_user(session: Session, user: User) -> User:
-    """Save or update a user."""
-    existing = session.query(User).filter_by(telegram_id=str(user.id)).first()
-    if existing:
-        for key, value in user.model_dump().items():
-            setattr(existing, key, value)
-        session.commit()
-        return existing
-    else:
-        session.add(user)
-        session.commit()
-        return user
 
 
 def get_status_text() -> str:

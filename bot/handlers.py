@@ -6,19 +6,28 @@ from typing import List
 # Third-party imports
 from aiogram import Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
+from aiogram.types import (
+    BotCommand,
+    # BotCommandScopeAllPrivateChats,
+    BotCommandScopeDefault,
+    Message,
+)
 
 # Local application imports
 from bot.filters import IsAdmin, IsPremium
 from bot.middlewares import LongOperation
-from config import get_logger
+from config import get_config, get_logger
+from db.repositories import save_user
 
-logger = get_logger(__name__)
+LOG = get_logger(__name__)
 
 # Temporary placeholder for BOT_ADMIN_ID and t
-BOT_ADMIN_ID = 0
+BOT_ADMIN_ID = get_config().BOT_ADMIN_ID
 
-t = lambda locale, key, *args, **kwargs: key  # Dummy translation function
+
+def t(_locale: str, key: str, *_args, **_kwargs) -> str:
+    return key  # Dummy translation function
+
 
 # Create routers
 root_router = Router()
@@ -43,17 +52,17 @@ async def command_start_handler(message: Message) -> None:
         return
 
     try:
-        # await save_user(message.from_user)  # Not implemented
-        pass
-        logger.info("User %d started the bot", message.from_user.id)
+        save_user(message.from_user)  # Not implemented
+        LOG.info("User %d started the bot", message.from_user.id)
     except Exception as error:
-        logger.error("Failed to save user on /start: %s", error)
+        LOG.error("Failed to save user on /start: %s", error)
 
     locale = message.from_user.language_code or "en"
     is_admin = message.from_user.id == BOT_ADMIN_ID
     is_premium = message.from_user.is_premium or False
 
     msg = t(locale, "start.instructions")
+
     await message.answer(
         msg,
         parse_mode="Markdown",
@@ -137,17 +146,24 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
     if not message.from_user or not message.bot:
         return
 
+    LOG.info(
+        "Updating commands for user %d, is_admin: %s, is_premium: %s",
+        message.from_user.id,
+        is_admin,
+        is_premium,
+    )
+
     locale = message.from_user.language_code or "en"
-    commands = []
+    commands: List[BotCommand] = []
 
     # Base commands
     commands.extend(
         [
-            ("start", t(locale, "cmd.start")),
-            ("help", t(locale, "cmd.help")),
-            ("queue", t(locale, "cmd.queue")),
-            ("profile", t(locale, "cmd.profile")),
-            ("bugs", t(locale, "cmd.bugs")),
+            BotCommand(command="start", description=t(locale, "cmd.start")),
+            BotCommand(command="help", description=t(locale, "cmd.help")),
+            BotCommand(command="queue", description=t(locale, "cmd.queue")),
+            BotCommand(command="profile", description=t(locale, "cmd.profile")),
+            BotCommand(command="bugs", description=t(locale, "cmd.bugs")),
         ]
     )
 
@@ -155,8 +171,8 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
     if is_premium or is_admin:
         commands.extend(
             [
-                ("monitor", t(locale, "cmd.monitor")),
-                ("unmonitor", t(locale, "cmd.unmonitor")),
+                BotCommand(command="monitor", description=t(locale, "cmd.monitor")),
+                BotCommand(command="unmonitor", description=t(locale, "cmd.unmonitor")),
             ]
         )
 
@@ -164,25 +180,25 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
     if is_admin:
         commands.extend(
             [
-                ("users", t(locale, "cmd.users")),
-                ("history", t(locale, "cmd.history")),
-                ("block", t(locale, "cmd.block")),
-                ("unblock", t(locale, "cmd.unblock")),
-                ("blocklist", t(locale, "cmd.blocklist")),
-                ("status", t(locale, "cmd.status")),
-                ("restart", t(locale, "cmd.restart")),
-                ("bugreport", t(locale, "cmd.listbugs")),
-                ("bugs", t(locale, "cmd.bugs")),
-                ("reset_auth", "Reset Telegram auth code"),
-                ("flush", t(locale, "cmd.flush")),
-                ("welcome", t(locale, "cmd.welcome")),
+                BotCommand(command="users", description=t(locale, "cmd.users")),
+                BotCommand(command="history", description=t(locale, "cmd.history")),
+                BotCommand(command="block", description=t(locale, "cmd.block")),
+                BotCommand(command="unblock", description=t(locale, "cmd.unblock")),
+                BotCommand(command="blocklist", description=t(locale, "cmd.blocklist")),
+                BotCommand(command="status", description=t(locale, "cmd.status")),
+                BotCommand(command="restart", description=t(locale, "cmd.restart")),
+                BotCommand(command="bugreport", description=t(locale, "cmd.listbugs")),
+                BotCommand(command="bugs", description=t(locale, "cmd.bugs")),
+                BotCommand(command="reset_auth", description="Reset Telegram auth code"),
+                BotCommand(command="flush", description=t(locale, "cmd.flush")),
+                BotCommand(command="welcome", description=t(locale, "cmd.welcome")),
             ]
         )
 
-    await message.bot.set_my_commands(
-        commands,
-        scope={"type": "chat", "chat_id": message.chat.id},
-    )
+    LOG.info("Updating commands for user %d", message.from_user.id)
+    await message.bot.set_my_commands(commands, scope=BotCommandScopeDefault())
+
+    LOG.info("Commands updated for user %d", message.from_user.id)
 
 
 def get_routers() -> List[Router]:
