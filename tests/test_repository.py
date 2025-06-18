@@ -20,28 +20,24 @@ def db_session():
 
 def test_create_and_get_user(db_session):
     repo = UserRepository(db_session)
-    user_data = UserCreate(
-        username="testuser", email="test@example.com", password="secret", chat_id=12345
-    )
+    user_data = UserCreate(username="testuser", chat_id=12345, is_bot=False, is_premium=False)
     user = repo.create_user(user_data)
     assert user.username == "testuser"
-    assert user.email == "test@example.com"
     assert user.chat_id == 12345
     # Now get by id
     fetched = repo.get_user(user.id)
     assert fetched is not None
     assert fetched.username == "testuser"
-    assert fetched.email == "test@example.com"
     assert fetched.chat_id == 12345
 
 
 def test_list_users(db_session):
     repo = UserRepository(db_session)
     user1 = repo.create_user(
-        UserCreate(username="user1", email="u1@example.com", password="pw1", chat_id=111)
+        UserCreate(username="user1", chat_id=111, is_bot=False, is_premium=True)
     )
     user2 = repo.create_user(
-        UserCreate(username="user2", email="u2@example.com", password="pw2", chat_id=222)
+        UserCreate(username="user2", chat_id=222, is_bot=False, is_premium=False)
     )
     users = repo.list_users()
     usernames = {u.username for u in users}

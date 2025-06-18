@@ -20,7 +20,7 @@ def test_initialize_project_logger_stdout_stderr(monkeypatch, capsys):
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
-    initialize_project_logger("test_logger", is_stdout_debug=True)
+    initialize_project_logger("test_logger", is_stdout_debug=True, log_level="DEBUG")
     logger = logging.getLogger("test_logger")
     logger.info("info message")
     logger.error("error message")
@@ -31,13 +31,15 @@ def test_initialize_project_logger_stdout_stderr(monkeypatch, capsys):
 
 def test_initialize_project_logger_file_handlers(temp_log_dir):
     logger_name = "file_logger"
-    initialize_project_logger(logger_name, path_dir_where_to_store_logs=temp_log_dir)
+    initialize_project_logger(
+        logger_name, path_dir_where_to_store_logs=temp_log_dir, log_level="DEBUG"
+    )
     logger = logging.getLogger(logger_name)
     logger.debug("debug file message")
     logger.error("error file message")
-    logs_dir = os.path.join(temp_log_dir, "Logs")
-    debug_log_path = os.path.join(logs_dir, "debug.log")
-    error_log_path = os.path.join(logs_dir, "errors.log")
+    # logs_dir = os.path.join(temp_log_dir, "logs")
+    debug_log_path = os.path.join(temp_log_dir, "debug.log")
+    error_log_path = os.path.join(temp_log_dir, "errors.log")
     # Ensure log files are created
     assert os.path.exists(debug_log_path)
     assert os.path.exists(error_log_path)

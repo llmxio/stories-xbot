@@ -8,8 +8,9 @@ from typing import Optional
 def initialize_project_logger(
     name: Optional[str] = None,
     path_dir_where_to_store_logs: str = "logs",
-    is_stdout_debug: bool = False,
+    is_stdout_debug: bool = True,
     is_to_propagate_to_root_logger: bool = False,
+    log_level: str = "INFO",
 ):
     """
     Initialize a project logger with optional file logging and custom settings.
@@ -20,7 +21,7 @@ def initialize_project_logger(
     """
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
     logger.propagate = is_to_propagate_to_root_logger
 
     # Remove all handlers associated with the logger object
@@ -56,10 +57,9 @@ def initialize_project_logger(
 
     # Optionally add file handlers
     if path_dir_where_to_store_logs:
-        logs_dir = os.path.join(path_dir_where_to_store_logs, "Logs")
-        os.makedirs(logs_dir, exist_ok=True)
-        debug_log_path = os.path.join(logs_dir, "debug.log")
-        error_log_path = os.path.join(logs_dir, "errors.log")
+        os.makedirs(path_dir_where_to_store_logs, exist_ok=True)
+        debug_log_path = os.path.join(path_dir_where_to_store_logs, "debug.log")
+        error_log_path = os.path.join(path_dir_where_to_store_logs, "errors.log")
 
         debug_file_handler = RotatingFileHandler(
             debug_log_path, maxBytes=10 * 1024 * 1024, backupCount=1
@@ -80,9 +80,6 @@ def initialize_project_logger(
         logger.addHandler(error_file_handler)
 
 
-def get_logger(name: Optional[str] = None) -> logging.Logger:
-    initialize_project_logger(name)
+def get_logger(name: Optional[str] = None, log_level: str = "INFO") -> logging.Logger:
+    initialize_project_logger(name, log_level=log_level)
     return logging.getLogger(name)
-
-
-LOGGER = get_logger("root")

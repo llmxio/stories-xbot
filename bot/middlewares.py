@@ -9,13 +9,7 @@ from aiogram.utils.chat_action import ChatActionSender
 from sqlalchemy.orm import Session
 
 from config.logger import get_logger
-from db.repository import (
-    block_user,
-    get_suspension_remaining,
-    is_user_blocked,
-    is_user_temporarily_suspended,
-    save_user,
-)
+from db.repository import UserRepository
 
 logger = get_logger(__name__)
 
@@ -33,6 +27,7 @@ class UserMiddleware(BaseMiddleware):
 
     def __init__(self, session: Session):
         self.session = session
+        self.user_repo = UserRepository(session)
 
     async def __call__(
         self,
@@ -43,21 +38,22 @@ class UserMiddleware(BaseMiddleware):
         if not isinstance(event, Message) or not event.from_user:
             return await handler(event, data)
 
+        chat_id = event.chat.id
         # Block bot users
         if event.from_user.is_bot:
             if event.from_user.id != data["bot"].id:
-                await block_user(self.session, str(event.from_user.id), True)
+                self.user_repo.block_user(chat_id, True)
             return
 
         # Check if user is blocked
-        if is_user_blocked(self.session, str(event.from_user.id)):
+        if self.user_repo.is_user_blocked(chat_id):
             return
 
         # Check if user is temporarily suspended
-        if event.from_user.id != data["bot"].id and is_user_temporarily_suspended(
-            self.session, str(event.from_user.id)
+        if event.from_user.id != data["bot"].id and self.user_repo.is_user_temporarily_suspended(
+            chat_id
         ):
-            remaining = get_suspension_remaining(self.session, str(event.from_user.id))
+            remaining = self.user_repo.get_suspension_remaining(chat_id)
             minutes = (remaining + 59) // 60  # Round up to nearest minute
             try:
                 await event.answer(
@@ -69,7 +65,8 @@ class UserMiddleware(BaseMiddleware):
 
         # Save user information
         try:
-            save_user(self.session, event.from_user)
+            # You may want to adapt this to pass a User object or dict as needed
+            self.user_repo.save_user(event.from_user)
         except Exception as e:
             logger.exception("Failed to save user: %s", e)
 

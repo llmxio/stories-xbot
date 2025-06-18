@@ -13,9 +13,15 @@ from db.models import (
     MonitorSentStory,
     ProfileRequest,
     Task,
-    UserDB,
     UserRequestLog,
 )
+from db.models import (
+    Chat as ChatDB,
+)
+from db.models import (
+    User as UserDB,
+)
+from db.schemas import Chat as ChatSchema
 from db.schemas import Payment, Profile, Story, User, UserCreate
 
 logger = get_logger(__name__)
@@ -35,11 +41,8 @@ class UserRepository(BaseRepository):
         db_user = UserDB(
             chat_id=user.chat_id,
             username=user.username,
-            email=user.email,
-            password=user.password,
             is_bot=user.is_bot,
             is_premium=user.is_premium,
-            created_at=datetime.now(),
         )
         self.db.add(db_user)
         self.db.commit()
@@ -49,14 +52,15 @@ class UserRepository(BaseRepository):
 
     def get_user(self, user_id: int) -> Optional[User]:
         """Retrieve a user by ID from the database."""
-        db_user = self.db.query(UserDB).filter(UserDB.id == user_id).first()
+        logger.info("Fetching user by id=%d", user_id)
+        db_user = self.db.query(User).filter(User.id == user_id).first()
         if db_user:
             return User.model_validate(db_user)
         return None
 
     def list_users(self) -> List[User]:
         """List all users in the database."""
-        db_users = self.db.query(UserDB).all()
+        db_users = self.db.query(User).all()
         return [User.model_validate(u) for u in db_users]
 
     def add_user(self, user: User):
@@ -65,8 +69,8 @@ class UserRepository(BaseRepository):
         return user
 
     def get_user_by_chat_id(self, chat_id: int):
-        logger.debug("Fetching user by chat_id=%d", chat_id)
-        return self.db.query(UserDB).filter_by(chat_id=chat_id).first()
+        logger.info("Fetching user by chat_id=%d", chat_id)
+        return self.db.query(User).filter_by(chat_id=chat_id).first()
 
     def list_all_users(self):
         return self.db.query(User).all()
@@ -106,21 +110,24 @@ class UserRepository(BaseRepository):
         now = int(datetime.now().timestamp())
         return max(0, violation.suspended_until - now)
 
-    def save_user(self, user: User) -> User:
+    def save_user(self, user: UserCreate) -> User:
         """Save or update a user."""
-        logger.debug("Saving user with chat_id=%d", user.chat_id)
+        logger.info("Saving user with chat_id=%d", user.chat_id)
         existing = self.db.query(UserDB).filter_by(chat_id=user.chat_id).first()
+
         if existing:
             for key, value in user.model_dump().items():
                 setattr(existing, key, value)
             self.db.commit()
             logger.info("Updated existing user with chat_id=%d", user.chat_id)
-            return existing
+            return User.model_validate(existing)
         else:
-            self.db.add(user)
+            db_user = UserDB(**user.model_dump())
+            self.db.add(db_user)
             self.db.commit()
+            self.db.refresh(db_user)
             logger.info("Created new user with chat_id=%d", user.chat_id)
-            return user
+            return User.model_validate(db_user)
 
 
 class StoryRepository(BaseRepository):
@@ -295,3 +302,21 @@ def list_user_request_logs(session: Session):
 def get_status_text() -> str:
     """Get admin status text."""
     return "Status not implemented yet."
+
+
+class ChatRepository(BaseRepository):
+    def create_chat(self, chat: ChatSchema) -> ChatSchema:
+        db_chat = ChatDB(
+            id=chat.id,
+            type=chat.type,
+            title=chat.title,
+            username=chat.username,
+            first_name=chat.first_name,
+            last_name=chat.last_name,
+            is_forum=chat.is_forum,
+            created_at=chat.created_at,
+        )
+        self.db.add(db_chat)
+        self.db.commit()
+        self.db.refresh(db_chat)
+        return ChatSchema.model_validate(db_chat)
