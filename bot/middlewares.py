@@ -10,8 +10,9 @@ from sqlalchemy.orm import Session
 
 from config.logger import get_logger
 from db.repository import UserRepository
+from db.schemas import UserCreate
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, log_level="DEBUG")
 
 
 class UserMiddleware(BaseMiddleware):
@@ -28,6 +29,7 @@ class UserMiddleware(BaseMiddleware):
     def __init__(self, session: Session):
         self.session = session
         self.user_repo = UserRepository(session)
+        logger.debug("Initialized UserMiddleware with session")
 
     async def __call__(
         self,
@@ -39,14 +41,19 @@ class UserMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         chat_id = event.chat.id
+        user_id = event.from_user.id
+        logger.debug("Processing message from user %d in chat %d", user_id, chat_id)
+
         # Block bot users
         if event.from_user.is_bot:
             if event.from_user.id != data["bot"].id:
+                logger.info("Blocking bot user %d", user_id)
                 self.user_repo.block_user(chat_id, True)
             return
 
         # Check if user is blocked
         if self.user_repo.is_user_blocked(chat_id):
+            logger.info("Blocked user %d attempted to use the bot", user_id)
             return
 
         # Check if user is temporarily suspended
@@ -55,20 +62,32 @@ class UserMiddleware(BaseMiddleware):
         ):
             remaining = self.user_repo.get_suspension_remaining(chat_id)
             minutes = (remaining + 59) // 60  # Round up to nearest minute
+            logger.info(
+                "Suspended user %d attempted to use the bot, %d minutes remaining",
+                user_id,
+                minutes,
+            )
             try:
                 await event.answer(
                     f"🚫 You are temporarily suspended for {minutes} minute{'s' if minutes != 1 else ''}."
                 )
             except Exception as e:
-                logger.exception("Failed to answer: %s", e)
+                logger.exception("Failed to answer suspended user %d: %s", user_id, e)
             return
 
         # Save user information
         try:
-            # You may want to adapt this to pass a User object or dict as needed
-            self.user_repo.save_user(event.from_user)
+            logger.debug("Saving user information for user %d", user_id)
+            self.user_repo.save_user(
+                UserCreate(
+                    is_bot=event.from_user.is_bot,
+                    is_premium=event.from_user.is_premium or False,
+                    chat_id=chat_id,
+                    username=event.from_user.username or "",
+                )
+            )
         except Exception as e:
-            logger.exception("Failed to save user: %s", e)
+            logger.exception("Failed to save user %d: %s", user_id, e)
 
         return await handler(event, data)
 
@@ -91,11 +110,12 @@ class LoggingMiddleware(BaseMiddleware):
     ) -> Any:
         if isinstance(event, Message):
             text = event.text if hasattr(event, "text") else ""
+            user_id = event.from_user.id if event.from_user else None
             logger.debug(
-                "Update from %s",
-                event.from_user.id if event.from_user else "unknown",
+                "Processing update from user %s",
+                user_id or "unknown",
                 extra={
-                    "userId": event.from_user.id if event.from_user else None,
+                    "userId": user_id,
                     "updateType": event.content_type,
                     "text": text,
                 },
@@ -127,9 +147,29 @@ class LongOperation(BaseMiddleware):
             return await handler(event, data)
 
         # If flag exists, send chat action
-        async with ChatActionSender(
-            action=long_operation_type,
-            chat_id=event.chat.id,
-            bot=data["bot"],
-        ):
-            return await handler(event, data)
+        logger.debug(
+            "Starting long operation '%s' for chat %d",
+            long_operation_type,
+            event.chat.id,
+        )
+        try:
+            async with ChatActionSender(
+                action=long_operation_type,
+                chat_id=event.chat.id,
+                bot=data["bot"],
+            ):
+                result = await handler(event, data)
+                logger.debug(
+                    "Completed long operation '%s' for chat %d",
+                    long_operation_type,
+                    event.chat.id,
+                )
+                return result
+        except Exception as e:
+            logger.exception(
+                "Error during long operation '%s' for chat %d: %s",
+                long_operation_type,
+                event.chat.id,
+                e,
+            )
+            raise

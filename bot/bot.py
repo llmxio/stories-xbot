@@ -16,16 +16,16 @@ async def start_bot(settings: Config, session: Session) -> None:
     bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
 
+    # Initialize middlewares
+    dp.message.middleware(UserMiddleware(session))
+    dp.message.middleware(LoggingMiddleware())
+    dp.message.middleware(LongOperation())
+
     # Register handlers
     register_handlers(dp)
 
-    # Initialize middlewares
-    dp.update.middleware(UserMiddleware(session))
-    dp.update.middleware(LoggingMiddleware())
-    dp.update.middleware(LongOperation())
-
     try:
-        LOGGER.info("Starting bot...")
+        LOGGER.debug("Starting bot...")
         await dp.start_polling(bot)  # type: ignore
     except Exception as e:
         LOGGER.exception("Error in bot: %s", e)

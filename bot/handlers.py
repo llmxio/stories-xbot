@@ -71,7 +71,7 @@ async def command_start_handler(message: Message) -> None:
             is_forum=getattr(message.chat, "is_forum", False) or False,
             created_at=getattr(message.chat, "created_at", None) or datetime.datetime.now(),
         )
-        chat_repo.create_chat(chat_data)
+        chat_repo.try_create_chat(chat_data)
 
         user_repo = UserRepository(session)
         user_repo.save_user(

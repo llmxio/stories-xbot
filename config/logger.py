@@ -28,31 +28,21 @@ def initialize_project_logger(
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
 
-    # Console handler for stdout (INFO, WARNING)
-    class InfoFilter(logging.Filter):
-        def filter(self, record: logging.LogRecord) -> bool:
-            return record.levelno in (logging.INFO, logging.WARNING)
+    # Common formatter for all handlers
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
 
+    # Console handler for stdout (DEBUG, INFO, WARNING)
     stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging.INFO if not is_stdout_debug else logging.DEBUG)
-    stdout_handler.addFilter(InfoFilter())
-    stdout_format = logging.Formatter("%(message)s")
-    stdout_handler.setFormatter(stdout_format)
+    stdout_handler.setLevel(logging.DEBUG if is_stdout_debug else logging.INFO)
+    stdout_handler.setFormatter(formatter)
     logger.addHandler(stdout_handler)
 
     # Console handler for stderr (ERROR, CRITICAL)
-    class ErrorFilter(logging.Filter):
-        def filter(self, record: logging.LogRecord) -> bool:
-            return record.levelno in (logging.ERROR, logging.CRITICAL)
-
     stderr_handler = logging.StreamHandler(sys.stderr)
     stderr_handler.setLevel(logging.ERROR)
-    stderr_handler.addFilter(ErrorFilter())
-    stderr_format = logging.Formatter(
-        "[%(levelname)s]: %(asctime)s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    stderr_handler.setFormatter(stderr_format)
+    stderr_handler.setFormatter(formatter)
     logger.addHandler(stderr_handler)
 
     # Optionally add file handlers
@@ -65,18 +55,14 @@ def initialize_project_logger(
             debug_log_path, maxBytes=10 * 1024 * 1024, backupCount=1
         )
         debug_file_handler.setLevel(logging.DEBUG)
-        debug_file_handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
-        )
+        debug_file_handler.setFormatter(formatter)
         logger.addHandler(debug_file_handler)
 
         error_file_handler = RotatingFileHandler(
             error_log_path, maxBytes=10 * 1024 * 1024, backupCount=1
         )
         error_file_handler.setLevel(logging.ERROR)
-        error_file_handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
-        )
+        error_file_handler.setFormatter(formatter)
         logger.addHandler(error_file_handler)
 
 

@@ -14,7 +14,7 @@ class Config(BaseSettings):
     SUPABASE_KEY: str = ""
     DATABASE_URL: str = ""
     BOT_ADMIN_ID: int = 0
-    LOG_LEVEL: str = "INFO"  # Logging level, e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+    LOG_LEVEL: str = "DEBUG"  # Logging level, e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
     # Add more fields as needed
 
     model_config = SettingsConfigDict(
