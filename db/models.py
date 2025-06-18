@@ -15,7 +15,7 @@ class BlockedUser(Base):
 
 class BugReport(Base):
     __tablename__ = "bug_reports"
-    id = sa.Column(sa.Integer, primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     username = sa.Column(sa.String)
     description = sa.Column(sa.String)
@@ -24,7 +24,7 @@ class BugReport(Base):
 
 class DownloadQueue(Base):
     __tablename__ = "download_queue"
-    id = sa.Column(sa.Integer, primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     target_username = sa.Column(sa.String)
     status = sa.Column(sa.String)
@@ -43,14 +43,14 @@ class InvalidLinkViolation(Base):
 
 class MonitorSentStory(Base):
     __tablename__ = "monitor_sent_stories"
-    monitor_id = sa.Column(sa.Integer, primary_key=True)
-    story_id = sa.Column(sa.Integer, primary_key=True)
+    monitor_id = sa.Column(sa.BigInteger, primary_key=True)
+    story_id = sa.Column(sa.BigInteger, primary_key=True)
     expires_at = sa.Column(sa.Integer)
 
 
 class Monitor(Base):
     __tablename__ = "monitors"
-    id = sa.Column(sa.Integer, primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     target_username = sa.Column(sa.String)
     last_checked = sa.Column(sa.Integer)
@@ -89,7 +89,7 @@ class UserRequestLog(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id = sa.Column(sa.Integer, primary_key=True, index=True)
+    id = sa.Column(sa.BigInteger, primary_key=True, index=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), index=True)
     username = sa.Column(sa.String, unique=True, index=True)
     is_bot = sa.Column(sa.Boolean, default=False, nullable=False)
