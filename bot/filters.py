@@ -5,6 +5,8 @@ from typing import Any
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
+from config import get_config
+
 
 class ChatType(BaseFilter):
     """Filter messages by chat type."""
@@ -37,3 +39,23 @@ class HasUsernames(BaseFilter):
 
         # If no usernames found, return False
         return False
+
+
+class IsAdmin(BaseFilter):
+    """Filter messages from admin users."""
+
+    async def __call__(self, message: Message) -> bool:
+        """Check if the message is from an admin user."""
+        if not message.from_user:
+            return False
+        return message.from_user.id == get_config().BOT_ADMIN_ID
+
+
+class IsPremium(BaseFilter):
+    """Filter messages from premium users."""
+
+    async def __call__(self, message: Message) -> bool:
+        """Check if the message is from a premium user."""
+        if not message.from_user:
+            return False
+        return bool(message.from_user.is_premium)

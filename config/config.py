@@ -12,7 +12,8 @@ class Config(BaseSettings):
     USERBOT_SESSION_NAME: str = "userbot"  # Session name for userbot
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
-    SQLALCHEMY_URL: str = ""
+    DATABASE_URL: str = ""
+    BOT_ADMIN_ID: int = 0
     # Add more fields as needed
 
     model_config = SettingsConfigDict(

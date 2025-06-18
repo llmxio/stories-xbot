@@ -224,3 +224,52 @@ def get_user(session: Session, telegram_id: str):
 
 def list_users(session: Session):
     return session.query(User).all()
+
+
+def block_user(session: Session, telegram_id: str, is_bot: bool = False) -> BlockedUser:
+    """Block a user by their Telegram ID."""
+    user = BlockedUser(
+        telegram_id=telegram_id, is_bot=is_bot, blocked_at=int(datetime.utcnow().timestamp())
+    )
+    session.add(user)
+    session.commit()
+    return user
+
+
+def is_user_blocked(session: Session, telegram_id: str) -> bool:
+    """Check if a user is blocked."""
+    result = session.query(BlockedUser).filter_by(telegram_id=telegram_id).first()
+    return result is not None
+
+
+def is_user_temporarily_suspended(session: Session, telegram_id: str) -> bool:
+    """Check if a user is temporarily suspended."""
+    violation = session.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
+    if not violation:
+        return False
+    # Check if suspension period has passed
+    now = int(datetime.utcnow().timestamp())
+    return violation.suspended_until > now
+
+
+def get_suspension_remaining(session: Session, telegram_id: str) -> int:
+    """Get remaining suspension time in seconds."""
+    violation = session.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
+    if not violation:
+        return 0
+    now = int(datetime.utcnow().timestamp())
+    return max(0, violation.suspended_until - now)
+
+
+def save_user(session: Session, user: User) -> User:
+    """Save or update a user."""
+    existing = session.query(User).filter_by(telegram_id=str(user.id)).first()
+    if existing:
+        for key, value in user.model_dump().items():
+            setattr(existing, key, value)
+        session.commit()
+        return existing
+    else:
+        session.add(user)
+        session.commit()
+        return user
