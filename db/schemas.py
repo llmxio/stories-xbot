@@ -44,13 +44,14 @@ class Payment(BaseModel):
 
 
 class UserBase(BaseModel):
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     username: str = Field(..., description="Username")
-    email: str = Field(..., description="Email")
+    is_bot: bool = Field(..., description="Is bot")
+    is_premium: bool = Field(..., description="Is premium")
 
 
 class UserCreate(UserBase):
-    password: str = Field(..., description="Password")
+    pass
 
 
 class User(UserBase):
@@ -62,7 +63,7 @@ class User(UserBase):
 
 
 class BlockedUser(BaseModel):
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     blocked_at: int = Field(..., description="Blocked at")
     is_bot: int = Field(..., description="Is bot")
 
@@ -72,7 +73,7 @@ class BlockedUser(BaseModel):
 
 class BugReport(BaseModel):
     id: int = Field(..., description="Bug report ID")
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     username: str = Field(..., description="Username")
     description: str = Field(..., description="Description")
     created_at: int = Field(..., description="Created at")
@@ -83,7 +84,7 @@ class BugReport(BaseModel):
 
 class DownloadQueue(BaseModel):
     id: int = Field(..., description="Download queue ID")
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     target_username: str = Field(..., description="Target username")
     status: str = Field(..., description="Status")
     enqueued_ts: int = Field(..., description="Enqueued timestamp")
@@ -96,7 +97,7 @@ class DownloadQueue(BaseModel):
 
 
 class InvalidLinkViolation(BaseModel):
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     count: int = Field(..., description="Count")
     suspended_until: int = Field(..., description="Suspended until")
 
@@ -115,7 +116,7 @@ class MonitorSentStory(BaseModel):
 
 class Monitor(BaseModel):
     id: int = Field(..., description="Monitor ID")
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     target_username: str = Field(..., description="Target username")
     last_checked: int = Field(..., description="Last checked")
     created_at: datetime = Field(default_factory=datetime.now)
@@ -125,7 +126,7 @@ class Monitor(BaseModel):
 
 
 class ProfileRequest(BaseModel):
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     target_username: str = Field(..., description="Target username")
     requested_at: int = Field(..., description="Requested at")
 
@@ -135,7 +136,7 @@ class ProfileRequest(BaseModel):
 
 class Task(BaseModel):
     id: str = Field(..., description="Task ID")
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     status: str = Field(..., description="Status")
     task_details: str = Field(..., description="Task details")
     enqueued_ts: int = Field(..., description="Enqueued timestamp")
@@ -152,8 +153,22 @@ class Task(BaseModel):
 
 
 class UserRequestLog(BaseModel):
-    telegram_id: str = Field(..., description="Telegram ID")
+    chat_id: int = Field(..., description="Chat ID")
     requested_at: int = Field(..., description="Requested at")
+
+    class Config:
+        from_attributes = True
+
+
+class Chat(BaseModel):
+    id: int = Field(..., description="Chat ID")
+    type: str = Field(..., description="Chat type")
+    title: Optional[str] = Field(None, description="Chat title")
+    username: Optional[str] = Field(None, description="Chat username")
+    first_name: Optional[str] = Field(None, description="First name")
+    last_name: Optional[str] = Field(None, description="Last name")
+    is_forum: bool = Field(default=False, description="Is forum")
+    created_at: datetime = Field(default_factory=datetime.now)
 
     class Config:
         from_attributes = True

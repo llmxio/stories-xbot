@@ -17,7 +17,9 @@ from aiogram.types import (
 from bot.filters import IsAdmin, IsPremium
 from bot.middlewares import LongOperation
 from config import get_config, get_logger
-from db.repositories import save_user
+from db.repository import UserRepository
+from db.schemas import UserCreate
+from db.session import get_session
 
 LOG = get_logger(__name__)
 
@@ -51,15 +53,27 @@ async def command_start_handler(message: Message) -> None:
     if not message.from_user:
         return
 
-    try:
-        save_user(message.from_user)  # Not implemented
-        LOG.info("User %d started the bot", message.from_user.id)
-    except Exception as error:
-        LOG.error("Failed to save user on /start: %s", error)
-
     locale = message.from_user.language_code or "en"
     is_admin = message.from_user.id == BOT_ADMIN_ID
     is_premium = message.from_user.is_premium or False
+
+    try:
+        session = get_session()
+        user_repo = UserRepository(session)
+
+        user = user_repo.get_user(message.from_user.id) or user_repo.create_user(
+            UserCreate(
+                chat_id=message.from_user.id,
+                username=message.from_user.username or "",
+                is_bot=message.from_user.is_bot,
+                is_premium=message.from_user.is_premium or False,
+            )
+        )
+
+        user_repo.save_user(user)  # Not implemented
+        LOG.info("User %d started the bot", message.from_user.id)
+    except Exception as error:
+        LOG.error("Failed to save user on /start: %s", error)
 
     msg = t(locale, "start.instructions")
 
@@ -81,7 +95,7 @@ async def command_help_handler(message: Message) -> None:
 
     locale = message.from_user.language_code or "en"
     is_admin = message.from_user.id == BOT_ADMIN_ID
-    is_premium = message.from_user.is_premium or False
+    is_premium = message.from_user.is_premium == True
 
     help_text = t(locale, "help.header") + "\n\n"
     help_text += t(

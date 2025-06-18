@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from config import get_logger
 from db.models import (
     BlockedUser,
     BugReport,
@@ -15,8 +16,9 @@ from db.models import (
     UserDB,
     UserRequestLog,
 )
-
 from db.schemas import Payment, Profile, Story, User, UserCreate
+
+logger = get_logger(__name__)
 
 
 class BaseRepository:
@@ -29,16 +31,20 @@ class UserRepository(BaseRepository):
 
     def create_user(self, user: UserCreate) -> User:
         """Create a new user in the database."""
+        logger.debug("Creating user with chat_id=%d, username=%s", user.chat_id, user.username)
         db_user = UserDB(
-            telegram_id=user.telegram_id,
+            chat_id=user.chat_id,
             username=user.username,
             email=user.email,
             password=user.password,
+            is_bot=user.is_bot,
+            is_premium=user.is_premium,
             created_at=datetime.now(),
         )
         self.db.add(db_user)
         self.db.commit()
         self.db.refresh(db_user)
+        logger.info("User created with id=%d", db_user.id)
         return User.model_validate(db_user)
 
     def get_user(self, user_id: int) -> Optional[User]:
@@ -58,37 +64,43 @@ class UserRepository(BaseRepository):
         self.db.commit()
         return user
 
-    def get_user_by_telegram_id(self, telegram_id: str):
-        return self.db.query(User).get(telegram_id)
+    def get_user_by_chat_id(self, chat_id: int):
+        logger.debug("Fetching user by chat_id=%d", chat_id)
+        return self.db.query(UserDB).filter_by(chat_id=chat_id).first()
 
     def list_all_users(self):
         return self.db.query(User).all()
 
-    def block_user(self, telegram_id: str, is_bot: bool = False) -> BlockedUser:
+    def block_user(self, chat_id: int, is_bot: bool = False) -> BlockedUser:
         """Block a user by their Telegram ID."""
+        logger.debug("Blocking user with chat_id=%d, is_bot=%s", chat_id, is_bot)
         user = BlockedUser(
-            telegram_id=telegram_id, is_bot=is_bot, blocked_at=int(datetime.now().timestamp())
+            chat_id=chat_id, is_bot=is_bot, blocked_at=int(datetime.now().timestamp())
         )
         self.db.add(user)
         self.db.commit()
+        logger.info("User blocked with chat_id=%d", chat_id)
         return user
 
-    def is_user_blocked(self, telegram_id: str) -> bool:
+    def is_user_blocked(self, chat_id: int) -> bool:
         """Check if a user is blocked."""
-        result = self.db.query(BlockedUser).filter_by(telegram_id=telegram_id).first()
+        logger.debug("Checking if user is blocked with chat_id=%d", chat_id)
+        result = self.db.query(BlockedUser).filter_by(chat_id=chat_id).first()
         return result is not None
 
-    def is_user_temporarily_suspended(self, telegram_id: str) -> bool:
+    def is_user_temporarily_suspended(self, chat_id: int) -> bool:
         """Check if a user is temporarily suspended."""
-        violation = self.db.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
+        logger.debug("Checking if user is temporarily suspended with chat_id=%d", chat_id)
+        violation = self.db.query(InvalidLinkViolation).filter_by(chat_id=chat_id).first()
         if not violation:
             return False
         now = int(datetime.now().timestamp())
         return bool(violation.suspended_until > now)
 
-    def get_suspension_remaining(self, telegram_id: str) -> int:
+    def get_suspension_remaining(self, chat_id: int) -> int:
         """Get remaining suspension time in seconds."""
-        violation = self.db.query(InvalidLinkViolation).filter_by(telegram_id=telegram_id).first()
+        logger.debug("Getting suspension remaining for chat_id=%d", chat_id)
+        violation = self.db.query(InvalidLinkViolation).filter_by(chat_id=chat_id).first()
         if not violation:
             return 0
         now = int(datetime.now().timestamp())
@@ -96,15 +108,18 @@ class UserRepository(BaseRepository):
 
     def save_user(self, user: User) -> User:
         """Save or update a user."""
-        existing = self.db.query(User).filter_by(telegram_id=str(user.id)).first()
+        logger.debug("Saving user with chat_id=%d", user.chat_id)
+        existing = self.db.query(UserDB).filter_by(chat_id=user.chat_id).first()
         if existing:
             for key, value in user.model_dump().items():
                 setattr(existing, key, value)
             self.db.commit()
+            logger.info("Updated existing user with chat_id=%d", user.chat_id)
             return existing
         else:
             self.db.add(user)
             self.db.commit()
+            logger.info("Created new user with chat_id=%d", user.chat_id)
             return user
 
 
@@ -169,8 +184,8 @@ def add_blocked_user(session: Session, user: BlockedUser):
     return user
 
 
-def get_blocked_user(session: Session, telegram_id: str):
-    return session.query(BlockedUser).get(telegram_id)
+def get_blocked_user(session: Session, chat_id: int):
+    return session.query(BlockedUser).get(chat_id)
 
 
 def list_blocked_users(session: Session):
@@ -211,8 +226,8 @@ def add_invalid_link_violation(session: Session, violation: InvalidLinkViolation
     return violation
 
 
-def get_invalid_link_violation(session: Session, telegram_id: str):
-    return session.query(InvalidLinkViolation).get(telegram_id)
+def get_invalid_link_violation(session: Session, chat_id: int):
+    return session.query(InvalidLinkViolation).get(chat_id)
 
 
 def list_invalid_link_violations(session: Session):
