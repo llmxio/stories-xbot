@@ -8,7 +8,7 @@ aiogram==3.20.0.post0
     # via telestories
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.11.18
+aiohttp==3.12.13
     # via
     #   aiogram
     #   realtime
