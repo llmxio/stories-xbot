@@ -22,6 +22,7 @@ dependencies = [
   "pytest>=8.4.0",
   "uvloop>=0.21.0",
   "psycopg2>=2.9.10",
+  "redis>=6.2.0",
 ]
 
 [tool.pytest.ini_options]

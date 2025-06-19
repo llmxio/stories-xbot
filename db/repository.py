@@ -21,6 +21,7 @@ from db.models import (
 from db.models import (
     User as UserDB,
 )
+from db.redis import CachedUser
 from db.schemas import Chat as ChatSchema
 from db.schemas import Payment, Profile, Story, User, UserCreate
 
@@ -48,14 +49,28 @@ class UserRepository(BaseRepository):
         self.db.commit()
         self.db.refresh(db_user)
         logger.info("User created with id=%d", db_user.id)
-        return User.model_validate(db_user)
+        user_model = User.model_validate(db_user)
+        # Cache the new user
+        cached_user = CachedUser.model_validate(user_model)
+        cached_user.save_to_cache()
+        return user_model
 
     def get_user(self, user_id: int) -> Optional[User]:
         """Retrieve a user by ID from the database."""
-        logger.info("Fetching user by id=%d", user_id)
+        # Try to get from cache first
+        cached_user = CachedUser.get_from_cache(user_id)
+        if cached_user:
+            return cached_user
+
+        # If not in cache, get from database
+        logger.info("Cache miss, fetching user by id=%d from database", user_id)
         db_user = self.db.query(User).filter(User.id == user_id).first()
         if db_user:
-            return User.model_validate(db_user)
+            user = User.model_validate(db_user)
+            # Cache the user for future requests
+            cached_user = CachedUser.model_validate(user)
+            cached_user.save_to_cache()
+            return user
         return None
 
     def list_users(self) -> List[User]:
@@ -68,9 +83,17 @@ class UserRepository(BaseRepository):
         self.db.commit()
         return user
 
-    def get_user_by_chat_id(self, chat_id: int):
+    def get_user_by_chat_id(self, chat_id: int) -> Optional[User]:
+        """Retrieve a user by chat ID."""
         logger.info("Fetching user by chat_id=%d", chat_id)
-        return self.db.query(User).filter_by(chat_id=chat_id).first()
+        db_user = self.db.query(UserDB).filter_by(chat_id=chat_id).first()
+        if db_user:
+            user = User.model_validate(db_user)
+            # Cache the user for future requests
+            cached_user = CachedUser.model_validate(user)
+            cached_user.save_to_cache()
+            return user
+        return None
 
     def list_all_users(self):
         return self.db.query(User).all()
@@ -120,14 +143,19 @@ class UserRepository(BaseRepository):
                 setattr(existing, key, value)
             self.db.commit()
             logger.info("Updated existing user with chat_id=%d", user.chat_id)
-            return User.model_validate(existing)
+            user_model = User.model_validate(existing)
         else:
             db_user = UserDB(**user.model_dump())
             self.db.add(db_user)
             self.db.commit()
             self.db.refresh(db_user)
             logger.info("Created new user with chat_id=%d", user.chat_id)
-            return User.model_validate(db_user)
+            user_model = User.model_validate(db_user)
+
+        # Update cache
+        cached_user = CachedUser.model_validate(user_model)
+        cached_user.save_to_cache()
+        return user_model
 
 
 class StoryRepository(BaseRepository):

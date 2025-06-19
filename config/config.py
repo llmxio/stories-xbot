@@ -15,6 +15,13 @@ class Config(BaseSettings):
     DATABASE_URL: str = ""
     BOT_ADMIN_ID: int = 0
     LOG_LEVEL: str = "DEBUG"  # Logging level, e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+
+    # Redis configuration
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    REDIS_PASSWORD: str = ""  # Optional Redis password
+
     # Add more fields as needed
 
     model_config = SettingsConfigDict(

@@ -9,6 +9,7 @@ from aiogram.utils.chat_action import ChatActionSender
 from sqlalchemy.orm import Session
 
 from config import get_config, get_logger
+from db.redis import CachedUser
 from db.repository import UserRepository
 from db.schemas import UserCreate
 
@@ -77,10 +78,16 @@ class UserMiddleware(BaseMiddleware):
                 logger.exception("Failed to answer suspended user %d: %s", user_id, e)
             return
 
-        # Save user information
+        # Try to get user from cache first
+        cached_user = None
+        existing_user = self.user_repo.get_user_by_chat_id(chat_id)
+        if existing_user:
+            cached_user = CachedUser.get_from_cache(existing_user.id)
+
+        # Save or update user information
         try:
             logger.debug("Saving user information for user %d", user_id)
-            self.user_repo.save_user(
+            user = self.user_repo.save_user(
                 UserCreate(
                     is_bot=event.from_user.is_bot,
                     is_premium=event.from_user.is_premium or False,
@@ -88,8 +95,13 @@ class UserMiddleware(BaseMiddleware):
                     username=event.from_user.username or "",
                 )
             )
+            # Add user to handler data for easy access
+            data["user"] = user
         except Exception as e:
             logger.exception("Failed to save user %d: %s", user_id, e)
+            # If save fails but we have cached user, use that
+            if cached_user:
+                data["user"] = cached_user
 
         return await handler(event, data)
 

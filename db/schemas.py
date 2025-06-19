@@ -10,9 +10,9 @@ class Story(BaseModel):
     id: int = Field(..., description="Story ID")
     user_id: int = Field(..., description="User ID who posted the story")
     media_url: str = Field(..., description="URL to the story media")
+    is_viewed: bool = Field(default=False, description="Whether the story has been viewed")
     created_at: datetime = Field(default_factory=datetime.now)
     expires_at: Optional[datetime] = Field(None, description="Story expiration time")
-    is_viewed: bool = Field(default=False)
     viewed_at: Optional[datetime] = Field(None, description="When the story was viewed")
 
 

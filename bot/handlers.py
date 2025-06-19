@@ -24,7 +24,8 @@ from db.schemas import UserCreate
 from db.session import get_session
 from utils.i18n import t
 
-LOG = get_logger(__name__, log_level="DEBUG")
+LOG_LEVEL = get_config().LOG_LEVEL
+LOG = get_logger(__name__, log_level=LOG_LEVEL)
 
 # Temporary placeholder for BOT_ADMIN_ID and t
 BOT_ADMIN_ID = get_config().BOT_ADMIN_ID
@@ -83,7 +84,7 @@ async def command_start_handler(message: Message) -> None:
             )
         )
 
-        LOG.info("User %d started the bot", message.from_user.id)
+        LOG.debug("User %d started the bot", message.from_user.id)
     except Exception as error:
         LOG.exception("Failed to save user on /start: %s", error)
     finally:
@@ -170,7 +171,7 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
     if not message.from_user or not message.bot:
         return
 
-    LOG.info(
+    LOG.debug(
         "Updating commands for user %d, is_admin: %s, is_premium: %s",
         message.from_user.id,
         is_admin,
@@ -190,7 +191,7 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
 
     # Premium commands
     if is_premium or is_admin:
-        LOG.info("Adding premium commands")
+        LOG.debug("Adding premium commands")
         commands += [
             BotCommand(command="monitor", description=t(locale, "cmd.monitor")),
             BotCommand(command="unmonitor", description=t(locale, "cmd.unmonitor")),
@@ -198,7 +199,7 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
 
     # Admin commands
     if is_admin:
-        LOG.info("Adding admin commands")
+        LOG.debug("Adding admin commands")
         commands += [
             BotCommand(command="users", description=t(locale, "cmd.users")),
             BotCommand(command="history", description=t(locale, "cmd.history")),
@@ -214,8 +215,7 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
             BotCommand(command="welcome", description=t(locale, "cmd.welcome")),
         ]
 
-    LOG.info("Commands: %s", commands)
-    LOG.info("Updating commands for user %d", message.from_user.id)
+    LOG.debug("Updating commands for user %d", message.from_user.id)
 
     result = await message.bot.set_my_commands(
         commands,
@@ -223,7 +223,7 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
     )
 
     if result:
-        LOG.info("Commands updated for user %d", message.from_user.id)
+        LOG.debug("Commands updated for user %d", message.from_user.id)
     else:
         LOG.error("Failed to update commands for user %d", message.from_user.id)
 
