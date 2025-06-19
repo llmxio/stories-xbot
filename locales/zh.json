@@ -19,6 +19,6 @@
   "cmd.welcome": "显示欢迎消息",
   "help.header": "*幽灵故事机器人帮助*",
   "help.general": "*常用命令：*\n`/start` - {cmdStart}\n`/help` - {cmdHelp}\n`/queue` - {cmdQueue}\n`/profile` - {cmdProfile}\n`/bugs <description>` - {cmdBugs}",
-  "help.premium": "*高级会员命令：*\n`/monitor <@username>` - {cmdMonitor}\n`/unmonitor <@username>` - {cmdUnmonitor}",
-  "help.admin": "*管理员命令：*\n`/users` - {cmdUsers}\n`/history` - {cmdHistory}\n`/block <ID 或 @username>` - {cmdBlock}\n`/unblock <ID 或 @username>` - {cmdUnblock}\n`/blocklist` - {cmdBlocklist}\n`/status` - {cmdStatus}\n`/restart` - {cmdRestart}\n`/bugreport` - {cmdListbugs}"
+  "help.premium": "\n*高级会员命令：*\n`/monitor <@username>` - {cmdMonitor}\n`/unmonitor <@username>` - {cmdUnmonitor}",
+  "help.admin": "\n*管理员命令：*\n`/users` - {cmdUsers}\n`/history` - {cmdHistory}\n`/block <ID 或 @username>` - {cmdBlock}\n`/unblock <ID 或 @username>` - {cmdUnblock}\n`/blocklist` - {cmdBlocklist}\n`/status` - {cmdStatus}\n`/restart` - {cmdRestart}\n`/bugreport` - {cmdListbugs}"
 }

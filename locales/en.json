@@ -19,6 +19,6 @@
   "cmd.welcome": "Show welcome message",
   "help.header": "*Stories Bot Help*",
   "help.general": "*General Commands:*\n`/start` - {cmdStart}\n`/help` - {cmdHelp}\n`/queue` - {cmdQueue}\n`/profile` - {cmdProfile}\n`/bugs <description>` - {cmdBugs}",
-  "help.premium": "*Premium Commands:*\n`/monitor <@username>` - {cmdMonitor}\n`/unmonitor <@username>` - {cmdUnmonitor}",
-  "help.admin": "*Admin Commands:*\n`/users` - {cmdUsers}\n`/history` - {cmdHistory}\n`/block <ID or @username>` - {cmdBlock}\n`/unblock <ID or @username>` - {cmdUnblock}\n`/blocklist` - {cmdBlocklist}\n`/status` - {cmdStatus}\n`/restart` - {cmdRestart}\n`/bugreport` - {cmdListbugs}"
+  "help.premium": "\n*Premium Commands:*\n`/monitor <@username>` - {cmdMonitor}\n`/unmonitor <@username>` - {cmdUnmonitor}",
+  "help.admin": "\n*Admin Commands:*\n`/users` - {cmdUsers}\n`/history` - {cmdHistory}\n`/block <ID or @username>` - {cmdBlock}\n`/unblock <ID or @username>` - {cmdUnblock}\n`/blocklist` - {cmdBlocklist}\n`/status` - {cmdStatus}\n`/restart` - {cmdRestart}\n`/bugreport` - {cmdListbugs}"
 }
