@@ -150,7 +150,7 @@ strenum==0.4.15
     # via supafunc
 supabase==2.15.3
     # via telestories
-supafunc==0.9.4
+supafunc==0.10.0
     # via supabase
 tgcrypto==1.2.5
     # via telestories
