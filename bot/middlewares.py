@@ -8,11 +8,13 @@ from aiogram.types import Message, TelegramObject
 from aiogram.utils.chat_action import ChatActionSender
 from sqlalchemy.orm import Session
 
-from config.logger import get_logger
+from config import get_config, get_logger
 from db.repository import UserRepository
 from db.schemas import UserCreate
 
-logger = get_logger(__name__, log_level="DEBUG")
+LOG_LEVEL = get_config().LOG_LEVEL
+
+logger = get_logger(__name__, log_level=LOG_LEVEL)
 
 
 class UserMiddleware(BaseMiddleware):
