@@ -114,37 +114,42 @@ class RedisModel(BaseModel):
 class CachedUser(User, RedisModel):
     """User model with Redis caching capabilities."""
 
-    @classmethod
-    def get_cache_key(cls, user_id: int) -> str:
-        """Get Redis key for user."""
-        return RedisClient.get_key(f"user:{user_id}")
+    # Additional fields for caching status
+    is_blocked: bool = False
+    is_suspended: bool = False
+    suspension_remaining: int = 0
 
     @classmethod
-    def get_from_cache(cls, user_id: int) -> Optional["CachedUser"]:
+    def get_cache_key(cls, chat_id: int) -> str:
+        """Get Redis key for user."""
+        return RedisClient.get_key(f"user:chat:{chat_id}")
+
+    @classmethod
+    def get_from_cache(cls, chat_id: int) -> Optional["CachedUser"]:
         """Get user from Redis cache."""
         redis_client = get_cache()
-        key = cls.get_cache_key(user_id)
+        key = cls.get_cache_key(chat_id)
         data = redis_client.get(key)
         if data:
-            logger.info("Retrieved user from cache with key %s", key)
+            logger.debug("Retrieved user from cache with key %s", key)
         else:
-            logger.info("Cache miss for user with key %s", key)
+            logger.debug("Cache miss for user with key %s", key)
         return cls.from_redis(data) if data else None
 
     def save_to_cache(self, expire_seconds: int = 3600) -> None:
         """Save user to Redis cache."""
         redis_client = get_cache()
-        key = self.get_cache_key(self.id)
+        key = self.get_cache_key(self.chat_id)
         redis_client.setex(key, expire_seconds, self.to_redis())
-        logger.info("Saved user to cache with key %s (expires in %d seconds)", key, expire_seconds)
+        logger.debug("Saved user to cache with key %s (expires in %d seconds)", key, expire_seconds)
 
     @classmethod
-    def delete_from_cache(cls, user_id: int) -> None:
+    def delete_from_cache(cls, chat_id: int) -> None:
         """Delete user from Redis cache."""
         redis_client = get_cache()
-        key = cls.get_cache_key(user_id)
+        key = cls.get_cache_key(chat_id)
         result = redis_client.delete(key)
         if result:
-            logger.info("Deleted user from cache with key %s", key)
+            logger.debug("Deleted user from cache with key %s", key)
         else:
-            logger.info("No user found in cache with key %s", key)
+            logger.debug("No user found in cache with key %s", key)

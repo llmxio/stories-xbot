@@ -54,54 +54,82 @@ class UserMiddleware(BaseMiddleware):
                 self.user_repo.block_user(chat_id, True)
             return
 
-        # Check if user is blocked
-        if self.user_repo.is_user_blocked(chat_id):
+        # Try to get user from cache first
+        cached_user = CachedUser.get_from_cache(chat_id)
+
+        # If not in cache, try database
+        if not cached_user:
+            existing_user = self.user_repo.get_user_by_chat_id(chat_id)
+            if existing_user:
+                cached_user = CachedUser.get_from_cache(existing_user.id)
+
+        # Check if user is blocked (using cached data if available)
+        if (
+            cached_user
+            and cached_user.is_blocked
+            or (not cached_user and self.user_repo.is_user_blocked(chat_id))
+        ):
             logger.info("Blocked user %d attempted to use the bot", user_id)
             return
 
-        # Check if user is temporarily suspended
-        if event.from_user.id != data["bot"].id and self.user_repo.is_user_temporarily_suspended(
-            chat_id
-        ):
-            remaining = self.user_repo.get_suspension_remaining(chat_id)
-            minutes = (remaining + 59) // 60  # Round up to nearest minute
-            logger.info(
-                "Suspended user %d attempted to use the bot, %d minutes remaining",
-                user_id,
-                minutes,
-            )
+        # Check if user is temporarily suspended (using cached data if available)
+        is_suspended = False
+        if event.from_user.id != data["bot"].id:
+            if cached_user and cached_user.is_suspended:
+                is_suspended = True
+                remaining = cached_user.suspension_remaining
+            else:
+                is_suspended = self.user_repo.is_user_temporarily_suspended(chat_id)
+                remaining = self.user_repo.get_suspension_remaining(chat_id) if is_suspended else 0
+
+            if is_suspended:
+                minutes = (remaining + 59) // 60  # Round up to nearest minute
+                logger.info(
+                    "Suspended user %d attempted to use the bot, %d minutes remaining",
+                    user_id,
+                    minutes,
+                )
+                try:
+                    await event.answer(
+                        f"🚫 You are temporarily suspended for {minutes} minute{'s' if minutes != 1 else ''}."
+                    )
+                except Exception as e:
+                    logger.exception("Failed to answer suspended user %d: %s", user_id, e)
+                return
+
+        # Only save user information if it has changed or user doesn't exist
+        should_save = False
+        if not cached_user:
+            should_save = True
+        else:
+            # Check if any user attributes have changed
+            if cached_user.is_premium != (
+                event.from_user.is_premium or False
+            ) or cached_user.username != (event.from_user.username or ""):
+                should_save = True
+
+        if should_save:
             try:
-                await event.answer(
-                    f"🚫 You are temporarily suspended for {minutes} minute{'s' if minutes != 1 else ''}."
+                logger.debug("Saving user information for user %d", user_id)
+                user = self.user_repo.save_user(
+                    UserCreate(
+                        is_bot=event.from_user.is_bot,
+                        is_premium=event.from_user.is_premium or False,
+                        chat_id=chat_id,
+                        username=event.from_user.username or "",
+                    )
                 )
+                # Update cache with new user data
+                cached_user = user
             except Exception as e:
-                logger.exception("Failed to answer suspended user %d: %s", user_id, e)
-            return
+                logger.exception("Failed to save user %d: %s", user_id, e)
+                # If save fails but we have cached user, continue with that
+                if not cached_user:
+                    # If we have no cached data and save failed, we can't proceed
+                    return
 
-        # Try to get user from cache first
-        cached_user = None
-        existing_user = self.user_repo.get_user_by_chat_id(chat_id)
-        if existing_user:
-            cached_user = CachedUser.get_from_cache(existing_user.id)
-
-        # Save or update user information
-        try:
-            logger.debug("Saving user information for user %d", user_id)
-            user = self.user_repo.save_user(
-                UserCreate(
-                    is_bot=event.from_user.is_bot,
-                    is_premium=event.from_user.is_premium or False,
-                    chat_id=chat_id,
-                    username=event.from_user.username or "",
-                )
-            )
-            # Add user to handler data for easy access
-            data["user"] = user
-        except Exception as e:
-            logger.exception("Failed to save user %d: %s", user_id, e)
-            # If save fails but we have cached user, use that
-            if cached_user:
-                data["user"] = cached_user
+        # Add user to handler data for easy access
+        data["user"] = cached_user
 
         return await handler(event, data)
 

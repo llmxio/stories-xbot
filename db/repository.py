@@ -50,25 +50,38 @@ class UserRepository(BaseRepository):
         self.db.refresh(db_user)
         logger.info("User created with id=%d", db_user.id)
         user_model = User.model_validate(db_user)
-        # Cache the new user
+        # Cache the new user with status
         cached_user = CachedUser.model_validate(user_model)
+        cached_user.is_blocked = False
+        cached_user.is_suspended = False
+        cached_user.suspension_remaining = 0
         cached_user.save_to_cache()
         return user_model
 
     def get_user(self, user_id: int) -> Optional[User]:
         """Retrieve a user by ID from the database."""
+        db_user = self.db.query(UserDB).filter(UserDB.id == user_id).first()
+        if db_user:
+            return self.get_user_by_chat_id(db_user.chat_id)
+        return None
+
+    def get_user_by_chat_id(self, chat_id: int) -> Optional[User]:
+        """Retrieve a user by chat ID."""
         # Try to get from cache first
-        cached_user = CachedUser.get_from_cache(user_id)
+        cached_user = CachedUser.get_from_cache(chat_id)
         if cached_user:
             return cached_user
 
         # If not in cache, get from database
-        logger.info("Cache miss, fetching user by id=%d from database", user_id)
-        db_user = self.db.query(User).filter(User.id == user_id).first()
+        logger.debug("Cache miss, fetching user by chat_id=%d from database", chat_id)
+        db_user = self.db.query(UserDB).filter_by(chat_id=chat_id).first()
         if db_user:
             user = User.model_validate(db_user)
-            # Cache the user for future requests
+            # Cache the user with status
             cached_user = CachedUser.model_validate(user)
+            cached_user.is_blocked = self.is_user_blocked(chat_id)
+            cached_user.is_suspended = self.is_user_temporarily_suspended(chat_id)
+            cached_user.suspension_remaining = self.get_suspension_remaining(chat_id)
             cached_user.save_to_cache()
             return user
         return None
@@ -83,18 +96,6 @@ class UserRepository(BaseRepository):
         self.db.commit()
         return user
 
-    def get_user_by_chat_id(self, chat_id: int) -> Optional[User]:
-        """Retrieve a user by chat ID."""
-        logger.info("Fetching user by chat_id=%d", chat_id)
-        db_user = self.db.query(UserDB).filter_by(chat_id=chat_id).first()
-        if db_user:
-            user = User.model_validate(db_user)
-            # Cache the user for future requests
-            cached_user = CachedUser.model_validate(user)
-            cached_user.save_to_cache()
-            return user
-        return None
-
     def list_all_users(self):
         return self.db.query(User).all()
 
@@ -107,6 +108,13 @@ class UserRepository(BaseRepository):
         self.db.add(user)
         self.db.commit()
         logger.info("User blocked with chat_id=%d", chat_id)
+
+        # Update cache if exists
+        cached_user = CachedUser.get_from_cache(chat_id)
+        if cached_user:
+            cached_user.is_blocked = True
+            cached_user.save_to_cache()
+
         return user
 
     def is_user_blocked(self, chat_id: int) -> bool:
@@ -135,25 +143,28 @@ class UserRepository(BaseRepository):
 
     def save_user(self, user: UserCreate) -> User:
         """Save or update a user."""
-        logger.info("Saving user with chat_id=%d", user.chat_id)
+        logger.debug("Saving user with chat_id=%d", user.chat_id)
         existing = self.db.query(UserDB).filter_by(chat_id=user.chat_id).first()
 
         if existing:
             for key, value in user.model_dump().items():
                 setattr(existing, key, value)
             self.db.commit()
-            logger.info("Updated existing user with chat_id=%d", user.chat_id)
+            logger.debug("Updated existing user with chat_id=%d", user.chat_id)
             user_model = User.model_validate(existing)
         else:
             db_user = UserDB(**user.model_dump())
             self.db.add(db_user)
             self.db.commit()
             self.db.refresh(db_user)
-            logger.info("Created new user with chat_id=%d", user.chat_id)
+            logger.debug("Created new user with chat_id=%d", user.chat_id)
             user_model = User.model_validate(db_user)
 
-        # Update cache
+        # Update cache with status
         cached_user = CachedUser.model_validate(user_model)
+        cached_user.is_blocked = self.is_user_blocked(user.chat_id)
+        cached_user.is_suspended = self.is_user_temporarily_suspended(user.chat_id)
+        cached_user.suspension_remaining = self.get_suspension_remaining(user.chat_id)
         cached_user.save_to_cache()
         return user_model
 

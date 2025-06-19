@@ -120,10 +120,17 @@ async def command_help_handler(message: Message) -> None:
         cmdHelp=t(locale, "cmd.help"),
         cmdQueue=t(locale, "cmd.queue"),
         cmdProfile=t(locale, "cmd.profile"),
-        cmdMonitor=t(locale, "cmd.monitor"),
-        cmdUnmonitor=t(locale, "cmd.unmonitor"),
         cmdBugs=t(locale, "cmd.bugs"),
     )
+
+    # Show premium commands only for premium users
+    if is_premium:
+        help_text += "\n" + t(
+            locale,
+            "help.premium",
+            cmdMonitor=t(locale, "cmd.monitor"),
+            cmdUnmonitor=t(locale, "cmd.unmonitor"),
+        )
 
     if is_admin:
         help_text += "\n" + t(
@@ -140,7 +147,6 @@ async def command_help_handler(message: Message) -> None:
         )
 
     await message.answer(help_text, parse_mode="Markdown")
-    await update_user_commands(message, is_admin, is_premium)
 
 
 # =============================
@@ -189,8 +195,8 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
         BotCommand(command="bugs", description=t(locale, "cmd.bugs")),
     ]
 
-    # Premium commands
-    if is_premium or is_admin:
+    # Premium commands - only for premium users
+    if is_premium:
         LOG.debug("Adding premium commands")
         commands += [
             BotCommand(command="monitor", description=t(locale, "cmd.monitor")),
@@ -219,7 +225,7 @@ async def update_user_commands(message: Message, is_admin: bool, is_premium: boo
 
     result = await message.bot.set_my_commands(
         commands,
-        scope=BotCommandScopeChat(chat_id=message.chat.id, locale=locale),
+        scope=BotCommandScopeChat(chat_id=message.chat.id),
     )
 
     if result:
