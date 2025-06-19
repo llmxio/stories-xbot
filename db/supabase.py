@@ -1,23 +1,24 @@
 from typing import Optional
 
-from loguru import logger
 from supabase import Client, create_client
 
-from .settings import Settings
+from config import Config, get_logger
+
+LOGGER = get_logger(__name__)
 
 
 class SupabaseClient:
     _instance: Optional[Client] = None
 
     @classmethod
-    def get_instance(cls, settings: Settings) -> Client:
+    def get_instance(cls, config: Config) -> Client:
         """Get or create Supabase client instance."""
         if cls._instance is None:
             try:
-                cls._instance = create_client(settings.supabase.url, settings.supabase.key)
-                logger.info("Supabase client initialized successfully")
+                cls._instance = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+                LOGGER.info("Supabase client initialized successfully")
             except Exception as e:
-                logger.exception("Failed to initialize Supabase client")
+                LOGGER.exception("Failed to initialize Supabase client: %s", e)
                 raise
         return cls._instance
 
@@ -26,9 +27,9 @@ class SupabaseClient:
         """Close Supabase client connection."""
         if cls._instance is not None:
             try:
-                cls._instance.close()
+                cls._instance.close()  # type: ignore[attr-defined]
                 cls._instance = None
-                logger.info("Supabase client closed successfully")
+                LOGGER.info("Supabase client closed successfully")
             except Exception as e:
-                logger.exception("Failed to close Supabase client")
+                LOGGER.exception("Failed to close Supabase client: %s", e)
                 raise

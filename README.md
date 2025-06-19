@@ -64,31 +64,9 @@ A Telegram bot and userbot implementation using PyrogramMod and aiogram.
 ## Running the Bot
 
 ```bash
-python -m src.main
+python main.py
 ```
 
 ## Development
 
 - Run tests: `pytest`
-- Format code: `ruff format .`
-- Lint code: `ruff check .`
-
-## Usage
-
-Send a message to the bot with:
-
-- Telegram username
-- Phone number
-- Direct link to story
-
-### Monitoring Profiles
-
-Monitor profiles for new stories (checked every 6 hours):
-
-- Add: `/monitor <@username|+19875551234>`
-- Remove: `/unmonitor <@username>`
-- List: `/monitor` or `/unmonitor` without arguments
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
