@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from config import get_config, get_logger
 from db.redis import CachedUser
 from db.repository import UserRepository
-from db.schemas import UserCreate
+from db.schemas import User as UserCreate
 
 LOG_LEVEL = get_config().LOG_LEVEL
 

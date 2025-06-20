@@ -19,7 +19,7 @@ class ChatType(str, enum.Enum):
 
 class BugReport(Base):
     __tablename__ = "bug_report"
-    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     username = sa.Column(sa.String)
     description = sa.Column(sa.String)
@@ -28,7 +28,7 @@ class BugReport(Base):
 
 class DownloadQueue(Base):
     __tablename__ = "download_queue"
-    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), nullable=False)
     target_username = sa.Column(sa.String)
     status = sa.Column(sa.String)
@@ -40,7 +40,7 @@ class DownloadQueue(Base):
 
 class InvalidLinkViolation(Base):
     __tablename__ = "invalid_link_violation"
-    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), nullable=False)
     count = sa.Column(sa.Integer)
     suspended_until = sa.Column(sa.DateTime)
@@ -63,7 +63,7 @@ class InvalidLinkViolation(Base):
 
 class Monitor(Base):
     __tablename__ = "monitor"
-    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     target_username = sa.Column(sa.String)
     last_checked = sa.Column(sa.DateTime)
@@ -72,7 +72,7 @@ class Monitor(Base):
 
 class Story(Base):
     __tablename__ = "story"
-    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
     user_id = sa.Column(sa.BigInteger, sa.ForeignKey("user.id"), nullable=False)
     media_url = sa.Column(sa.String, nullable=False)
     is_viewed = sa.Column(sa.Boolean, default=False, nullable=False)
@@ -83,7 +83,7 @@ class Story(Base):
 
 class Task(Base):
     __tablename__ = "task"
-    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     status = sa.Column(sa.String)
     task_details = sa.Column(sa.String)
@@ -100,7 +100,7 @@ class Task(Base):
 class User(Base):
     __tablename__ = "user"
 
-    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
+    id = sa.Column(sa.Integer, primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), nullable=False)
     is_bot = sa.Column(sa.Boolean, default=False, nullable=False)
     is_premium = sa.Column(sa.Boolean, default=False, nullable=False)

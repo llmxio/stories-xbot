@@ -17,7 +17,7 @@ async def main():
 
     try:
         # Start both bot and userbot with session management
-        with get_db_session() as session:
+        async with get_db_session() as session:
             bot_task = asyncio.create_task(start_bot(settings, session))
             userbot_task = asyncio.create_task(start_userbot(settings))
             await asyncio.gather(bot_task, userbot_task)

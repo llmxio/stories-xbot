@@ -19,8 +19,7 @@ from bot.filters import IsAdmin, IsPremium
 from bot.middlewares import LongOperation
 from config import get_config, get_logger
 from db.repository import ChatRepository, UserRepository
-from db.schemas import Chat as ChatSchema
-from db.schemas import UserCreate
+from db.schemas import Chat as ChatSchema, User as UserCreate
 from db.session import get_session
 from utils.i18n import t
 

@@ -1,48 +1,87 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from db.models import Base
+from db.models import Base, Chat, ChatType, User
 from db.repository import UserRepository
 from db.schemas import UserCreate
 
 
 @pytest.fixture(scope="function")
-def db_session():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    session_maker = sessionmaker(bind=engine)
+async def db_session():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_maker = async_sessionmaker(bind=engine)
     session = session_maker()
     yield session
-    session.close()
-    Base.metadata.drop_all(engine)
+    await session.close()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
 
 
-def test_create_and_get_user(db_session):
+async def test_create_and_get_chat(db_session):
+    # First create the chat that the user will reference
+    chat = Chat(id=12345, type=ChatType.PRIVATE)
+    db_session.add(chat)
+    await db_session.commit()
+
+    # Query the chat from the database to verify it was created
+    result = await db_session.execute(select(Chat).where(Chat.id == 12345))
+    fetched_chat = result.scalar_one_or_none()
+
+    assert fetched_chat is not None
+    assert fetched_chat.id == 12345
+    assert fetched_chat.type == ChatType.PRIVATE
+
+
+async def test_list_chats(db_session):
+    # Create chats first
+    chat1 = Chat(id=111, type=ChatType.PRIVATE)
+    chat2 = Chat(id=222, type=ChatType.PRIVATE)
+    db_session.add(chat1)
+    db_session.add(chat2)
+    await db_session.commit()
+
+    # Query all chats from the database
+    result = await db_session.execute(select(Chat))
+    all_chats = result.scalars().all()
+
+    # Verify we have 2 chats
+    assert len(all_chats) == 2
+
+    # Verify the chat IDs
+    chat_ids = {chat.id for chat in all_chats}
+    assert 111 in chat_ids
+    assert 222 in chat_ids
+
+
+async def test_user_repository_async_operations(db_session):
+    """Test that User repository operations work correctly with async drivers."""
+    # Create a chat first (required for User foreign key)
+    chat = Chat(id=99999, type=ChatType.PRIVATE)
+    db_session.add(chat)
+    await db_session.commit()
+
+    # Create a user using the repository
     repo = UserRepository(db_session)
-    user_data = UserCreate(username="testuser", chat_id=12345, is_bot=False, is_premium=False)
-    user = repo.create_user(user_data)
-    assert user.username == "testuser"
-    assert user.chat_id == 12345
-    # Now get by id
-    fetched = repo.get_user(user.id)
-    assert fetched is not None
-    assert fetched.username == "testuser"
-    assert fetched.chat_id == 12345
+    user_data = UserCreate(chat_id=99999, is_bot=False, is_premium=True)
+    user = await repo.create(user_data)
 
+    # Verify user was created correctly
+    assert user.chat_id == 99999
+    assert user.is_bot == False
+    assert user.is_premium == True
+    assert user.id is not None
 
-def test_list_users(db_session):
-    repo = UserRepository(db_session)
-    user1 = repo.create_user(
-        UserCreate(username="user1", chat_id=111, is_bot=False, is_premium=True)
-    )
-    user2 = repo.create_user(
-        UserCreate(username="user2", chat_id=222, is_bot=False, is_premium=False)
-    )
-    users = repo.list_users()
-    usernames = {u.username for u in users}
-    assert "user1" in usernames
-    assert "user2" in usernames
-    assert user1.chat_id == 111
-    assert user2.chat_id == 222
-    assert len(users) == 2
+    # Test getting the user by ID
+    fetched_user = await repo.get(user.id)
+    assert fetched_user is not None
+    assert fetched_user.chat_id == 99999
+    assert fetched_user.is_premium == True
+
+    # Test listing users
+    users = await repo.list()
+    assert len(users) == 1
+    assert users[0].chat_id == 99999
