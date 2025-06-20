@@ -13,9 +13,7 @@ from db.redis import CachedUser
 from db.repository import UserRepository
 from db.schemas import User as UserCreate
 
-LOG_LEVEL = get_config().LOG_LEVEL
-
-logger = get_logger(__name__, log_level=LOG_LEVEL)
+logger = get_logger(__name__)
 
 
 class UserMiddleware(BaseMiddleware):
@@ -64,7 +62,11 @@ class UserMiddleware(BaseMiddleware):
                 cached_user = CachedUser.get_from_cache(existing_user.id)
 
         # Check if user is blocked (using cached data if available)
-        if cached_user and cached_user.is_blocked or (not cached_user and self.user_repo.is_user_blocked(chat_id)):
+        if (
+            cached_user
+            and cached_user.is_blocked
+            or (not cached_user and self.user_repo.is_user_blocked(chat_id))
+        ):
             logger.info("Blocked user %d attempted to use the bot", user_id)
             return
 

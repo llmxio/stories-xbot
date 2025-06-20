@@ -1,14 +1,14 @@
 import pytest
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from db.models import Base, Chat, ChatType, User
 from db.repository import UserRepository
-from db.schemas import UserCreate
+from db.schemas import User
 
 
-@pytest.fixture(scope="function")
-async def db_session():
+@pytest.fixture(name="db_session", scope="function")
+async def db_session_fixture():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -21,7 +21,7 @@ async def db_session():
     await engine.dispose()
 
 
-async def test_create_and_get_chat(db_session):
+async def test_create_and_get_chat(db_session: AsyncSession):
     # First create the chat that the user will reference
     chat = Chat(id=12345, type=ChatType.PRIVATE)
     db_session.add(chat)
@@ -36,7 +36,7 @@ async def test_create_and_get_chat(db_session):
     assert fetched_chat.type == ChatType.PRIVATE
 
 
-async def test_list_chats(db_session):
+async def test_list_chats(db_session: AsyncSession):
     # Create chats first
     chat1 = Chat(id=111, type=ChatType.PRIVATE)
     chat2 = Chat(id=222, type=ChatType.PRIVATE)
@@ -57,7 +57,7 @@ async def test_list_chats(db_session):
     assert 222 in chat_ids
 
 
-async def test_user_repository_async_operations(db_session):
+async def test_user_repository_async_operations(db_session: AsyncSession):
     """Test that User repository operations work correctly with async drivers."""
     # Create a chat first (required for User foreign key)
     chat = Chat(id=99999, type=ChatType.PRIVATE)
@@ -66,7 +66,7 @@ async def test_user_repository_async_operations(db_session):
 
     # Create a user using the repository
     repo = UserRepository(db_session)
-    user_data = UserCreate(chat_id=99999, is_bot=False, is_premium=True)
+    user_data = User(chat_id=99999, is_bot=False, is_premium=True)
     user = await repo.create(user_data)
 
     # Verify user was created correctly

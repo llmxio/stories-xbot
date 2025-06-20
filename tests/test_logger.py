@@ -4,23 +4,27 @@ import shutil
 import tempfile
 
 import pytest
+from pytest import CaptureFixture, MonkeyPatch
 
 from config.logger import get_logger, initialize_project_logger
 
 
-@pytest.fixture
-def temp_log_dir():
+@pytest.fixture(name="temp_log_dir")
+def temp_log_dir_fixture():
     dirpath = tempfile.mkdtemp()
     yield dirpath
     shutil.rmtree(dirpath)
 
 
-def test_initialize_project_logger_stdout_stderr(monkeypatch, capsys):
+def test_initialize_project_logger_stdout_stderr(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture[str],
+) -> None:
     # Remove all handlers for root logger to avoid duplicate logs
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
-    initialize_project_logger("test_logger", is_stdout_debug=True, log_level="DEBUG")
+    initialize_project_logger("test_logger", log_level="DEBUG")
     logger = logging.getLogger("test_logger")
     logger.info("info message")
     logger.error("error message")
@@ -29,11 +33,9 @@ def test_initialize_project_logger_stdout_stderr(monkeypatch, capsys):
     assert "error message" in err
 
 
-def test_initialize_project_logger_file_handlers(temp_log_dir):
+def test_initialize_project_logger_file_handlers(temp_log_dir: str) -> None:
     logger_name = "file_logger"
-    initialize_project_logger(
-        logger_name, path_dir_where_to_store_logs=temp_log_dir, log_level="DEBUG"
-    )
+    initialize_project_logger(logger_name, path_dir_where_to_store_logs=temp_log_dir, log_level="DEBUG")
     logger = logging.getLogger(logger_name)
     logger.debug("debug file message")
     logger.error("error file message")
@@ -44,16 +46,16 @@ def test_initialize_project_logger_file_handlers(temp_log_dir):
     assert os.path.exists(debug_log_path)
     assert os.path.exists(error_log_path)
     # Check contents
-    with open(debug_log_path) as f:
+    with open(debug_log_path, encoding="utf-8") as f:
         contents = f.read()
         assert "debug file message" in contents
         assert "error file message" in contents
-    with open(error_log_path) as f:
+    with open(error_log_path, encoding="utf-8") as f:
         contents = f.read()
         assert "error file message" in contents
 
 
-def test_get_logger_initializes(monkeypatch):
+def test_get_logger_initializes(monkeypatch: MonkeyPatch) -> None:
     logger = get_logger("get_logger_test")
     assert isinstance(logger, logging.Logger)
     logger.info("get_logger info")

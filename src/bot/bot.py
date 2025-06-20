@@ -9,7 +9,7 @@ from config import get_config, get_logger
 
 LOG_LEVEL = get_config().LOG_LEVEL
 
-LOG = get_logger(__name__, log_level=LOG_LEVEL)
+LOG = get_logger(__name__)
 
 
 async def start_bot(session: Session) -> None:

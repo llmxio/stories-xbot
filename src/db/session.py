@@ -8,12 +8,12 @@ from sqlalchemy import event, text
 from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import ConnectionPoolEntry, NullPool
+from sqlalchemy.pool import NullPool
 
 from config import get_config, get_logger
 
 config = get_config()
-logger = get_logger(__name__, log_level=config.LOG_LEVEL)
+logger = get_logger(__name__)
 
 # Get database URL from config
 

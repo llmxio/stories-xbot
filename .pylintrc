@@ -1,5 +1,6 @@
 [MASTER]
 ignore=venv,.venv,build,dist,.git,__pycache__
+load-plugins=pylint_pytest
 
 [MESSAGES CONTROL]
 disable=C0114,C0115,C0116,R0903,R0801,W0511

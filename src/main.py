@@ -3,11 +3,11 @@ import asyncio
 import uvloop
 
 from bot import start_bot
-from config import get_config, get_logger
+from config import get_logger
 from db import get_db_session
 from userbot import start_userbot
 
-LOG = get_logger(__name__, log_level=get_config().LOG_LEVEL)
+LOG = get_logger(__name__)
 
 
 async def main():

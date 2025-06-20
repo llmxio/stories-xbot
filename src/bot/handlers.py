@@ -23,8 +23,7 @@ from db.schemas import Chat as ChatSchema, User as UserCreate
 from db.session import get_session
 from utils.i18n import t
 
-LOG_LEVEL = get_config().LOG_LEVEL
-LOG = get_logger(__name__, log_level=LOG_LEVEL)
+LOG = get_logger(__name__)
 
 # Temporary placeholder for BOT_ADMIN_ID and t
 BOT_ADMIN_ID = get_config().BOT_ADMIN_ID
