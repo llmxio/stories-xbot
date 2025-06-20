@@ -1,23 +1,23 @@
-from typing import Generic, Type, TypeVar
+from typing import Generic, Optional, Type, TypeVar
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession as Session
 
 from .models import Base, Chat, Story, User
-from .schemas import ChatCreate, StoryCreate, UserCreate
+from .schemas import ChatCreate, StoryCreate, User as UserSchema
 
-T = TypeVar("T", bound=Base)  # type: ignore[type-arg]
+T = TypeVar("T", bound=Base)
 
 
-class Repository(Generic[T]):
+class BaseRepository(Generic[T]):
     """Repository for data access."""
 
-    def __init__(self, session: AsyncSession, model: Type[T]):
+    def __init__(self, session: Session, model: Type[T]):
         """Initialize repository."""
         self.session = session
         self.model = model
 
-    async def get(self, pk: int) -> T | None:
+    async def get(self, pk: int) -> Optional[T]:
         """Get a single record by primary key."""
         return await self.session.get(self.model, pk)
 
@@ -27,10 +27,26 @@ class Repository(Generic[T]):
         return list(result.scalars().all())
 
 
-class StoryRepository(Repository[Story]):
+class UserRepository(BaseRepository[User]):
+    """User repository."""
+
+    def __init__(self, session: Session):
+        """Initialize user repository."""
+        super().__init__(session, User)
+
+    async def create(self, user_data: UserSchema) -> User:
+        """Create a new user."""
+        user = User(**user_data.model_dump())
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
+
+class StoryRepository(BaseRepository[Story]):
     """Story repository."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: Session):
         """Initialize story repository."""
         super().__init__(session, Story)
 
@@ -43,26 +59,10 @@ class StoryRepository(Repository[Story]):
         return story
 
 
-class UserRepository(Repository[User]):
-    """User repository."""
-
-    def __init__(self, session: AsyncSession):
-        """Initialize user repository."""
-        super().__init__(session, User)
-
-    async def create(self, user_data: UserCreate) -> User:
-        """Create a new user."""
-        user = User(**user_data.model_dump())
-        self.session.add(user)
-        await self.session.commit()
-        await self.session.refresh(user)
-        return user
-
-
-class ChatRepository(Repository[Chat]):
+class ChatRepository(BaseRepository[Chat]):
     """Chat repository."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: Session):
         """Initialize chat repository."""
         super().__init__(session, Chat)
 

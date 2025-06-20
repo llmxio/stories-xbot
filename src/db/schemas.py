@@ -24,34 +24,6 @@ class StoryUpdate(BaseModel):
     media_path: str | None
 
 
-class UserBase(BaseModel):
-    """Base user schema."""
-
-    id: int
-    first_name: str
-    last_name: str | None = None
-    language_code: str | None = None
-    is_premium: bool | None = False
-
-
-class UserCreate(UserBase):
-    """User create schema."""
-
-    chat_id: int
-
-
-class UserUpdate(UserBase):
-    """User update schema."""
-
-    pass
-
-
-class UserRead(UserBase):
-    """User read schema."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class ChatBase(BaseModel):
     """Base chat schema."""
 
@@ -108,6 +80,7 @@ class Story(AiogramStory):
 
 
 class User(AiogramUser):
+    chat_id: int = Field(..., description="Chat ID")
     is_blocked: bool = Field(..., description="Is blocked")
     blocked_at: Optional[datetime] = Field(None, description="Blocked at")
 
