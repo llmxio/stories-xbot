@@ -27,7 +27,7 @@ class BugReport(Base):
 class DownloadQueue(Base):
     __tablename__ = "download_queue"
     id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), nullable=False)
     target_username = sa.Column(sa.String)
     status = sa.Column(sa.String)
     enqueued_ts = sa.Column(sa.DateTime, default=datetime.now)
@@ -36,11 +36,12 @@ class DownloadQueue(Base):
     task_details = sa.Column(sa.String)
 
 
-# class InvalidLinkViolation(Base):
-#     __tablename__ = "invalid_link_violation"
-#     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), primary_key=True)
-#     count = sa.Column(sa.Integer)
-#     suspended_until = sa.Column(sa.DateTime)
+class InvalidLinkViolation(Base):
+    __tablename__ = "invalid_link_violation"
+    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), nullable=False)
+    count = sa.Column(sa.Integer)
+    suspended_until = sa.Column(sa.DateTime)
 
 
 # class MonitorSentStory(Base):
@@ -98,7 +99,7 @@ class User(Base):
     __tablename__ = "user"
 
     id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
-    username = sa.Column(sa.String)
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), nullable=False)
     is_bot = sa.Column(sa.Boolean, default=False, nullable=False)
     is_premium = sa.Column(sa.Boolean, default=False, nullable=False)
     is_blocked = sa.Column(sa.Boolean, default=False, nullable=False)

@@ -1,10 +1,73 @@
 from datetime import datetime
 from typing import Optional
 
-from aiogram.types import Chat as AiogramChat
-from aiogram.types import Story as AiogramStory
-from aiogram.types import User as AiogramUser
+from aiogram.types import Chat as AiogramChat, Story as AiogramStory, User as AiogramUser
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class StoryBase(BaseModel):
+    """Base story schema."""
+
+    story_id: int
+    chat_id: int
+
+
+class StoryCreate(StoryBase):
+    """Story create schema."""
+
+    pass
+
+
+class StoryUpdate(BaseModel):
+    """Story update schema."""
+
+    media_path: str | None
+
+
+class UserBase(BaseModel):
+    """Base user schema."""
+
+    id: int
+    first_name: str
+    last_name: str | None = None
+    language_code: str | None = None
+    is_premium: bool | None = False
+
+
+class UserCreate(UserBase):
+    """User create schema."""
+
+    chat_id: int
+
+
+class UserUpdate(UserBase):
+    """User update schema."""
+
+    pass
+
+
+class UserRead(UserBase):
+    """User read schema."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChatBase(BaseModel):
+    """Base chat schema."""
+
+    id: int
+    type: str
+    title: str | None = None
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    is_forum: bool | None = False
+
+
+class ChatCreate(ChatBase):
+    """Chat create schema."""
+
+    pass
 
 
 class Chat(AiogramChat):
