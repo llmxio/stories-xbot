@@ -9,7 +9,7 @@ Base = declarative_base()
 class BugReport(Base):
     __tablename__ = "bug_report"
     id = sa.Column(sa.BigInteger, primary_key=True)
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     username = sa.Column(sa.String)
     description = sa.Column(sa.String)
     created_at = sa.Column(sa.DateTime, default=datetime.now)
@@ -18,7 +18,7 @@ class BugReport(Base):
 class DownloadQueue(Base):
     __tablename__ = "download_queue"
     id = sa.Column(sa.BigInteger, primary_key=True)
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     target_username = sa.Column(sa.String)
     status = sa.Column(sa.String)
     enqueued_ts = sa.Column(sa.DateTime, default=datetime.now)
@@ -29,7 +29,7 @@ class DownloadQueue(Base):
 
 class InvalidLinkViolation(Base):
     __tablename__ = "invalid_link_violation"
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), primary_key=True)
     count = sa.Column(sa.Integer)
     suspended_until = sa.Column(sa.DateTime)
 
@@ -44,7 +44,7 @@ class MonitorSentStory(Base):
 class Monitor(Base):
     __tablename__ = "monitor"
     id = sa.Column(sa.BigInteger, primary_key=True)
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     target_username = sa.Column(sa.String)
     last_checked = sa.Column(sa.DateTime)
     created_at = sa.Column(sa.DateTime, default=datetime.now)
@@ -53,7 +53,7 @@ class Monitor(Base):
 class Task(Base):
     __tablename__ = "task"
     id = sa.Column(sa.String, primary_key=True)
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     status = sa.Column(sa.String)
     task_details = sa.Column(sa.String)
     enqueued_ts = sa.Column(sa.DateTime, default=datetime.now)
@@ -70,7 +70,7 @@ class User(Base):
     __tablename__ = "user"
 
     id = sa.Column(sa.BigInteger, primary_key=True, index=True)
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), index=True)
+    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), index=True)
     username = sa.Column(sa.String, unique=True, index=True)
     is_bot = sa.Column(sa.Boolean, default=False, nullable=False)
     is_premium = sa.Column(sa.Boolean, default=False, nullable=False)
@@ -79,12 +79,11 @@ class User(Base):
 
 
 class Chat(Base):
-    __tablename__ = "chats"
+    __tablename__ = "chat"
     id = sa.Column(sa.BigInteger, primary_key=True)
     type = sa.Column(sa.String, nullable=False)
     title = sa.Column(sa.String, nullable=True)
     username = sa.Column(sa.String, nullable=True)
     first_name = sa.Column(sa.String, nullable=True)
     last_name = sa.Column(sa.String, nullable=True)
-    is_forum = sa.Column(sa.Boolean, default=False, nullable=False)
     created_at = sa.Column(sa.DateTime, default=datetime.now)
