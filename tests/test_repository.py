@@ -2,7 +2,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from db.models import Base, Chat, ChatType, User
+from db import Base
+from db.models import Chat, ChatType, User
 from db.repository import UserRepository
 from db.schemas import User
 
@@ -12,8 +13,10 @@ async def db_session_fixture():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
     session_maker = async_sessionmaker(bind=engine)
     session = session_maker()
+
     yield session
     await session.close()
     async with engine.begin() as conn:
@@ -66,20 +69,20 @@ async def test_user_repository_async_operations(db_session: AsyncSession):
 
     # Create a user using the repository
     repo = UserRepository(db_session)
-    user_data = User(chat_id=99999, is_bot=False, is_premium=True)
+    user_data = User(chat_id=99999, is_bot=False, is_premium=True, id=1, first_name="Test", blocked_at=None)
     user = await repo.create(user_data)
 
     # Verify user was created correctly
     assert user.chat_id == 99999
-    assert user.is_bot == False
-    assert user.is_premium == True
+    assert not user.is_bot
+    assert user.is_premium
     assert user.id is not None
 
     # Test getting the user by ID
     fetched_user = await repo.get(user.id)
     assert fetched_user is not None
     assert fetched_user.chat_id == 99999
-    assert fetched_user.is_premium == True
+    assert fetched_user.is_premium
 
     # Test listing users
     users = await repo.list()

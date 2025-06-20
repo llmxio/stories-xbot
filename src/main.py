@@ -4,7 +4,7 @@ import uvloop
 
 from bot import start_bot
 from config import get_logger
-from db import get_db_session
+from db.session import session_manager
 from userbot import start_userbot
 
 LOG = get_logger(__name__)
@@ -14,12 +14,12 @@ async def main():
     try:
         LOG.info("Starting main loop")
 
-        # Start both bot and userbot with session management
-        async with get_db_session() as session:
+        async with session_manager.session() as session:
             await asyncio.gather(
                 asyncio.create_task(start_bot(session)),
                 asyncio.create_task(start_userbot()),
             )
+
     except Exception as e:
         LOG.exception("Error in main loop: %s", e)
         raise

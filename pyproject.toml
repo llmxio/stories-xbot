@@ -24,14 +24,21 @@ dependencies = [
   "mypy>=1.16.1",
   "psycopg>=3.2.9",
   "asyncpg>=0.30.0",
+  "ujson>=5.10.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v"
-pythonpath = "src"
+pythonpath = "./src"
 asyncio_mode = "auto"
+
+
+[tool.mypy]
+ignore_missing_imports = true
+namespace_packages = true
+mypy_path = "./src"
 
 [tool.ruff]
 line-length = 110

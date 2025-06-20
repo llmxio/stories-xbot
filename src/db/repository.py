@@ -2,9 +2,15 @@ from typing import Generic, Optional, Type, TypeVar, get_args
 
 from pydantic import BaseModel
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession as Session
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from config import get_logger
 
 from .models import Base, Chat, Story, User
+from .redis import CachedUser
+from .schemas import User as UserSchema
+
+logger = get_logger(__name__)
 
 T = TypeVar("T", bound=Base)
 
@@ -14,7 +20,7 @@ class BaseRepository(Generic[T]):
 
     # model: Type[T]
 
-    def __init__(self, session: Session, model: Optional[Type[T]] = None):
+    def __init__(self, session: AsyncSession, model: Optional[Type[T]] = None):
         """Initialize repository."""
         self.session = session
         if model is None:
@@ -52,19 +58,38 @@ class UserRepository(BaseRepository[User]):
     #     """Initialize user repository."""
     #     super().__init__(session, User)
 
-    # async def create(self, user_data: UserSchema) -> User:
-    #     """Create a new user."""
-    #     user = User(**user_data.model_dump())
-    #     self.session.add(user)
-    #     await self.session.commit()
-    #     await self.session.refresh(user)
-    #     return user
+    async def is_user_blocked(self, chat_id: int) -> bool:
+        """Check if user is blocked."""
+        user = await self.session.get(User, chat_id)
+        return user.is_blocked if user else False
+
+    async def get_by_chat_id(self, chat_id: int) -> Optional[UserSchema]:
+        """Retrieve a user by chat ID."""
+        cached_user = await CachedUser.get_from_cache(chat_id)
+
+        if cached_user:
+            return cached_user
+
+        logger.debug("Cache miss, fetching user by chat_id=%d from database", chat_id)
+        db_user = await self.session.execute(select(User).where(User.chat_id == chat_id))
+
+        if db_user:
+            user = UserSchema.model_validate(db_user)
+            # user.is_blocked = await self.is_user_blocked(chat_id)
+            # user.is_suspended = await self.is_user_temporarily_suspended(chat_id)
+            # user.suspension_remaining = await self.get_suspension_remaining(chat_id)
+            # Cache the user with status
+            cached_user = CachedUser.model_validate(user)
+            await cached_user.save_to_cache()
+            return user
+
+        return None
 
 
 class StoryRepository(BaseRepository[Story]):
     """Story repository."""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         """Initialize story repository."""
         super().__init__(session, Story)
 
@@ -80,7 +105,7 @@ class StoryRepository(BaseRepository[Story]):
 class ChatRepository(BaseRepository[Chat]):
     """Chat repository."""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         """Initialize chat repository."""
         super().__init__(session, Chat)
 

@@ -2,12 +2,18 @@
 
 import re
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, AsyncIterator, Optional
 
 from sqlalchemy import event, text
 from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.pool import NullPool
 
 from config import get_config, get_logger
@@ -40,16 +46,19 @@ def get_async_database_url(database_url: str) -> str:
             async_url.split("@")[0] + "@...",
         )
         return async_url
-    elif database_url.startswith("postgresql+asyncpg://"):
+
+    if database_url.startswith("postgresql+asyncpg://"):
         # Already in correct format
         return database_url
-    elif database_url.startswith("sqlite"):
+
+    if database_url.startswith("sqlite"):
         # For SQLite, use aiosqlite
         if database_url.startswith("sqlite://"):
             async_url = database_url.replace("sqlite://", "sqlite+aiosqlite://")
             logger.info("Converted SQLite URL to async format")
             return async_url
-        elif database_url.startswith("sqlite+aiosqlite://"):
+
+        if database_url.startswith("sqlite+aiosqlite://"):
             return database_url
 
     # If we can't determine the format, log a warning and return as-is
@@ -60,18 +69,72 @@ def get_async_database_url(database_url: str) -> str:
     return database_url
 
 
+class AsyncSessionManager:
+    def __init__(self, url: str, session_kwargs: Optional[dict[str, Any]] = None):
+        if session_kwargs is None:
+            session_kwargs = {}
+        self._engine = create_async_engine(url, **session_kwargs)
+        self._sessionmaker = async_sessionmaker(
+            bind=self._engine,
+            autocommit=False,
+            autoflush=False,
+            expire_on_commit=False,
+        )
+
+    def get_engine(self) -> AsyncEngine:
+        if self._engine is None:
+            raise RuntimeError("AsyncSessionManager is not initialized")
+
+        return self._engine
+
+    async def close(self):
+        if self._engine is None:
+            raise RuntimeError("AsyncSessionManager is not initialized")
+        await self._engine.dispose()
+
+        self._engine = None
+        self._sessionmaker = None
+
+    @asynccontextmanager
+    async def connect(self) -> AsyncIterator[AsyncConnection]:
+        if self._engine is None:
+            raise RuntimeError("AsyncSessionManager is not initialized")
+
+        async with self._engine.begin() as connection:
+            try:
+                yield connection
+            except Exception:
+                await connection.rollback()
+                raise
+
+    @asynccontextmanager
+    async def session(self) -> AsyncIterator[AsyncSession]:
+        if self._sessionmaker is None:
+            raise RuntimeError("AsyncSessionManager is not initialized")
+
+        session = self._sessionmaker()
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
 # Configure the engine with connection pooling and retry settings
-async_database_url = get_async_database_url(config.DATABASE_URL)
+ASYNC_DATABASE_URL = get_async_database_url(config.DATABASE_URL)
+
 
 # Configure engine settings based on database type
-engine_kwargs = {
+engine_kwargs: dict[str, Any] = {
     "pool_pre_ping": True,  # Enable connection health checks
     "pool_reset_on_return": "rollback",  # Reset connection state on return to pool
     "echo": False,  # Disable SQL echo for cleaner logs
 }
 
 # Add pooling settings for non-SQLite databases
-if not async_database_url.startswith("sqlite"):
+if not ASYNC_DATABASE_URL.startswith("sqlite"):
     engine_kwargs.update(
         {
             "pool_size": 20,  # Maximum number of connections in the pool
@@ -84,24 +147,20 @@ else:
     # For SQLite, use NullPool to avoid threading issues
     engine_kwargs["poolclass"] = NullPool
 
-engine = create_async_engine(async_database_url, **engine_kwargs)
-
 # Create session factory
-SessionLocal = async_sessionmaker(
-    bind=engine,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
+session_manager = AsyncSessionManager(
+    url=ASYNC_DATABASE_URL,
+    session_kwargs=engine_kwargs,
 )
 
+session_engine = session_manager.get_engine()
 
-# @event.listens_for(engine.sync_engine, "connect")
-# def connect(dbapi_connection: DBAPIConnection, _connection_record: ConnectionPoolEntry):
-#     """Set up connection-level configuration."""
-#     logger.debug(
-#         "New database connection established (id: %d)",
-#         id(dbapi_connection),
-#     )
+
+@event.listens_for(session_engine.sync_engine, "connect")
+def connect(dbapi_connection: DBAPIConnection, _connection_record):
+    """Set up connection-level configuration."""
+    logger.debug("New database connection established (id: %s)", dbapi_connection)
+
 
 #     # For psycopg2, we need to handle connection setup differently
 #     # if hasattr(dbapi_connection, "set_session"):
@@ -170,75 +229,6 @@ SessionLocal = async_sessionmaker(
 #     )
 
 
-@asynccontextmanager
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Get a database session with automatic cleanup."""
-    session = SessionLocal()
-    session_id = id(session)
-    logger.debug("Created new database session (id: %d)", session_id)
-    try:
-        # Test the connection immediately
-        await session.execute(text("SELECT 1"))
+async def get_session():
+    async with session_manager.session() as session:
         yield session
-        await session.commit()
-        logger.debug("Committed database session (id: %d)", session_id)
-    except Exception as e:
-        logger.exception(
-            "Error in database session (id: %d): %s",
-            session_id,
-            e,
-            exc_info=True,
-        )
-        try:
-            await session.rollback()
-            logger.debug("Rolled back database session (id: %d)", session_id)
-        except SQLAlchemyError as rollback_error:
-            logger.exception(
-                "Failed to rollback session (id: %d): %s",
-                session_id,
-                rollback_error,
-            )
-        raise
-    finally:
-        try:
-            await session.close()
-            logger.debug("Closed database session (id: %d)", session_id)
-        except SQLAlchemyError as close_error:
-            logger.exception(
-                "Error while closing session (id: %d): %s",
-                session_id,
-                close_error,
-            )
-
-
-async def get_session() -> AsyncSession:
-    """Get a new database session.
-
-    Note: This is kept for backward compatibility.
-    New code should use get_db_session() context manager instead.
-    """
-    session = SessionLocal()
-    session_id = id(session)
-    logger.debug("Created new database session via legacy method (id: %d)", session_id)
-    try:
-        # Test the connection
-        await session.execute(text("SELECT 1"))
-        logger.debug("Successfully tested database connection (session id: %d)", session_id)
-        return session
-    except SQLAlchemyError as e:
-        logger.exception(
-            "Failed to create database session (id: %d): %s",
-            session_id,
-            e,
-            exc_info=True,
-        )
-        try:
-            await session.close()
-            logger.debug("Closed failed database session (id: %d)", session_id)
-        except SQLAlchemyError as exc:
-            logger.exception(
-                "Error while closing failed session (id: %d): %s",
-                session_id,
-                exc,
-            )
-        raise

@@ -19,7 +19,7 @@ from bot.filters import IsAdmin, IsPremium
 from bot.middlewares import LongOperation
 from config import get_config, get_logger
 from db.repository import ChatRepository, UserRepository
-from db.schemas import Chat as ChatSchema, User as UserCreate
+from db.schemas import Chat as ChatSchema, User as UserSchema
 from db.session import get_session
 from utils.i18n import t
 
@@ -56,7 +56,7 @@ async def command_start_handler(message: Message) -> None:
     is_admin = message.from_user.id == BOT_ADMIN_ID
     is_premium = message.from_user.is_premium or False
 
-    session = get_session()
+    session = await get_session()
     try:
         # Create chat record at the beginning
         chat_repo = ChatRepository(session)
@@ -74,7 +74,7 @@ async def command_start_handler(message: Message) -> None:
 
         user_repo = UserRepository(session)
         user_repo.save_user(
-            UserCreate(
+            UserSchema(
                 chat_id=message.from_user.id,
                 username=message.from_user.username or "",
                 is_bot=is_bot,

@@ -5,36 +5,7 @@ from aiogram.types import Chat as AiogramChat, Story as AiogramStory, User as Ai
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class StoryBase(BaseModel):
-    """Base story schema."""
-
-    story_id: int
-    chat_id: int
-
-
-class StoryCreate(StoryBase):
-    """Story create schema."""
-
-
-class StoryUpdate(BaseModel):
-    """Story update schema."""
-
-    media_path: str | None
-
-
-class ChatBase(BaseModel):
-    """Base chat schema."""
-
-    id: int
-    type: str
-    title: str | None = None
-    username: str | None = None
-    first_name: str | None = None
-    last_name: str | None = None
-    is_forum: bool | None = False
-
-
-class ChatCreate(ChatBase):
+class ChatCreate(AiogramChat):
     """Chat create schema."""
 
     pass
@@ -78,13 +49,13 @@ class Story(AiogramStory):
 
 
 class User(AiogramUser):
+    model_config = ConfigDict(from_attributes=True, frozen=False)
+
     chat_id: int = Field(..., description="Chat ID")
     is_bot: bool = Field(default=False, description="Is bot")
     is_premium: bool = Field(default=False, description="Is premium")
     is_blocked: bool = Field(default=False, description="Is blocked")
-    blocked_at: Optional[datetime] = Field(None, description="Blocked at")
-
-    model_config = ConfigDict(from_attributes=True)
+    blocked_at: Optional[datetime] = Field(default_factory=datetime.now, description="Blocked at")
 
 
 class BugReport(BaseModel):

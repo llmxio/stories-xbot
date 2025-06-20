@@ -2,31 +2,33 @@ import json
 from datetime import datetime
 from typing import Any, Optional
 
-import redis
 from pydantic import BaseModel
+from redis.asyncio import Redis
 
 from config import get_config, get_logger
-from db.schemas import User
+
+from .schemas import User
 
 logger = get_logger(__name__)
 
 
 class RedisClient:
-    _instance: Optional[redis.Redis] = None
+    _instance: Optional[Redis] = None
     _prefix = "telestories:"
 
     @classmethod
-    def get_instance(cls) -> redis.Redis:
+    def get_instance(cls) -> Redis:
         """Get or create Redis client instance."""
         if cls._instance is None:
             config = get_config()
             try:
-                kwargs = {
+                kwargs: dict[str, Any] = {
                     "host": config.REDIS_HOST,
                     "port": config.REDIS_PORT,
                     "db": config.REDIS_DB,
                     "decode_responses": True,
                 }
+
                 if config.REDIS_PASSWORD:
                     kwargs["password"] = config.REDIS_PASSWORD
                     logger.info(
@@ -36,10 +38,12 @@ class RedisClient:
                     )
                 else:
                     logger.info(
-                        "Initializing Redis client on %s:%d", config.REDIS_HOST, config.REDIS_PORT
+                        "Initializing Redis client without password on %s:%d",
+                        config.REDIS_HOST,
+                        config.REDIS_PORT,
                     )
 
-                cls._instance = redis.Redis(**kwargs)
+                cls._instance = Redis(**kwargs)
                 logger.info("Redis client initialized successfully")
             except Exception as e:
                 logger.exception("Failed to initialize Redis client: %s", e)
@@ -47,11 +51,11 @@ class RedisClient:
         return cls._instance
 
     @classmethod
-    def close(cls) -> None:
+    async def close(cls) -> None:
         """Close Redis client connection."""
         if cls._instance is not None:
             try:
-                cls._instance.close()
+                await cls._instance.close()
                 cls._instance = None
                 logger.info("Redis client closed successfully")
             except Exception as e:
@@ -59,14 +63,9 @@ class RedisClient:
                 raise
 
     @classmethod
-    def get_key(cls, key: str) -> str:
+    async def get_key(cls, key: str) -> str:
         """Get prefixed key."""
         return f"{cls._prefix}{key}"
-
-
-def get_cache() -> redis.Redis:
-    """Get Redis client instance."""
-    return RedisClient.get_instance()
 
 
 class RedisModel(BaseModel):
@@ -106,50 +105,55 @@ class RedisModel(BaseModel):
         """Create model from Redis-compatible string."""
         if not data:
             return None
+
         json_data = json.loads(data)
         deserialized_data = {k: cls._deserialize_value(cls, v) for k, v in json_data.items()}
+
         return cls.model_validate(deserialized_data)
 
 
 class CachedUser(User, RedisModel):
     """User model with Redis caching capabilities."""
 
-    # Additional fields for caching status
-    is_blocked: bool = False
-    is_suspended: bool = False
-    suspension_remaining: int = 0
-
     @classmethod
-    def get_cache_key(cls, chat_id: int) -> str:
+    async def get_cache_key(cls, chat_id: int) -> str:
         """Get Redis key for user."""
-        return RedisClient.get_key(f"user:chat:{chat_id}")
+        return await RedisClient.get_key(f"user:chat:{chat_id}")
 
     @classmethod
-    def get_from_cache(cls, chat_id: int) -> Optional["CachedUser"]:
+    async def get_from_cache(cls, chat_id: int) -> Optional["CachedUser"]:
         """Get user from Redis cache."""
         redis_client = get_cache()
-        key = cls.get_cache_key(chat_id)
-        data = redis_client.get(key)
+        key = await cls.get_cache_key(chat_id)
+        data = await redis_client.get(key)
+
         if data:
             logger.debug("Retrieved user from cache with key %s", key)
         else:
             logger.debug("Cache miss for user with key %s", key)
+
         return cls.from_redis(data) if data else None
 
-    def save_to_cache(self, expire_seconds: int = 3600) -> None:
+    async def save_to_cache(self, expire_seconds: int = 3600) -> None:
         """Save user to Redis cache."""
         redis_client = get_cache()
-        key = self.get_cache_key(self.chat_id)
-        redis_client.setex(key, expire_seconds, self.to_redis())
+        key = await self.get_cache_key(self.chat_id)
+        await redis_client.setex(key, expire_seconds, self.to_redis())
         logger.debug("Saved user to cache with key %s (expires in %d seconds)", key, expire_seconds)
 
     @classmethod
-    def delete_from_cache(cls, chat_id: int) -> None:
+    async def delete_from_cache(cls, chat_id: int) -> None:
         """Delete user from Redis cache."""
         redis_client = get_cache()
-        key = cls.get_cache_key(chat_id)
-        result = redis_client.delete(key)
+        key = await cls.get_cache_key(chat_id)
+        result = await redis_client.delete(key)
+
         if result:
             logger.debug("Deleted user from cache with key %s", key)
         else:
             logger.debug("No user found in cache with key %s", key)
+
+
+def get_cache() -> Redis:
+    """Get Redis client instance."""
+    return RedisClient.get_instance()

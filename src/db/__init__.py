@@ -1,3 +1,4 @@
-from .session import get_db_session, get_session
+from .models import Base, User
+from .session import get_session, session_manager
 
-__all__ = ["get_db_session", "get_session"]
+__all__ = ["Base", "get_session", "session_manager", "User"]

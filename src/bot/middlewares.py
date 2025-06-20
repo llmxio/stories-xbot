@@ -8,10 +8,10 @@ from aiogram.types import Message, TelegramObject
 from aiogram.utils.chat_action import ChatActionSender
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 
-from config import get_config, get_logger
+from config import get_logger
 from db.redis import CachedUser
 from db.repository import UserRepository
-from db.schemas import User as UserCreate
+from db.schemas import User as UserSchema
 
 logger = get_logger(__name__)
 
@@ -110,7 +110,9 @@ class UserMiddleware(BaseMiddleware):
             try:
                 logger.debug("Saving user information for user %d", user_id)
                 user = self.user_repo.save_user(
-                    UserCreate(
+                    UserSchema(
+                        id=user_id,
+                        first_name=event.from_user.first_name,
                         is_bot=event.from_user.is_bot,
                         is_premium=event.from_user.is_premium or False,
                         chat_id=chat_id,
