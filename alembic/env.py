@@ -46,8 +46,8 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
     )
 
-    with context.begin_transaction():  # type: ignore[attr-defined]
-        context.run_migrations()  # type: ignore[attr-defined]
+    with context.begin_transaction():
+        context.run_migrations()
 
 
 def run_migrations_online() -> None:
