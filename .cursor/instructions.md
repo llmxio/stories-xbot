@@ -1,4 +1,4 @@
-# py-storiesxbot Project Instructions
+# telestories_bot Project Instructions
 
 ## Project Overview
 
@@ -6,36 +6,20 @@ This project implements a Telegram bot and userbot for story-related functionali
 
 ## Project Structure
 
-```
-py-storiesxbot/
+```text
+telestories_bot/
 ├── main.py                 # Main application entry point
-├── bot/                    # Bot implementation (aiogram)
-│   └── bot.py              # Main bot logic
-├── userbot/                # Userbot implementation (PyrogramMod)
-│   └── userbot.py          # Userbot logic
-├── config/                 # Configuration and settings
-│   ├── settings.py         # Application settings (pydantic)
-│   ├── logger.py           # Sets up both loguru and stdlib logging for the project
-│   └── supabase.py         # Supabase/PostgreSQL config
-├── db/                     # Database models and repository
-│   ├── models.py           # SQLAlchemy models
-│   └── repository.py       # Data access layer
-├── controllers/            # Request/command handlers (empty or WIP)
-├── services/               # Business logic (empty or WIP)
-├── utils/                  # Utility functions (empty or WIP)
+├── bot/                    # Main bot application
+├── userbot/                # Userbot application
+├── config/                 # Configuration
+├── db/                     # Database-related modules
 ├── alembic/                # Database migrations
-│   ├── env.py              # Alembic environment
-│   └── versions/           # Migration scripts
-├── scripts/                # Utility scripts (e.g., migrate.py)
-├── tests/                  # Test files (pytest)
-├── .github/                # GitHub config, workflows, Copilot instructions
-├── .cursor/                # Cursor editor instructions
-├── .vscode/                # VSCode settings (optional)
-├── pyproject.toml          # Project metadata and dependencies
-├── alembic.ini             # Alembic config
-├── uv.lock                 # uv lockfile
-├── README.md               # Project overview and usage
-└── ...                     # Other config and meta files
+├── scripts/                # Various scripts
+├── tests/                  # Tests
+├── locales/                # Localization files
+├── utils/                  # Utility functions
+├── pyproject.toml          # Project configuration and dependencies
+└── requirements.txt        # Pinned dependencies for production
 ```
 
 ## Technology Stack
@@ -125,7 +109,7 @@ python main.py
 - Use async/await for all I/O operations.
 - Separate concerns: handlers, services, repository, config.
 - Use structured logging (loguru, stdlib).
-- - Always use lazy % formatting in logging functions (e.g., logger.info("User id=%s", user_id)), and avoid f-strings in logger functions to defer string interpolation until needed.
+- Always use lazy % formatting in logging functions (e.g., logger.info("User id=%s", user_id)), and avoid f-strings in logger functions to defer string interpolation until needed.
 - Store secrets in environment variables, never commit credentials.
 - Validate and sanitize all user input.
 - Use proper error handling and logging.

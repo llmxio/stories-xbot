@@ -4,31 +4,24 @@
 
 This project implements a Telegram bot and userbot for story-related functionality, using modern Python async practices, aiogram, and PyrogramMod. It features database integration (Supabase/PostgreSQL), profile monitoring, and anonymous story viewing.
 
-This is a Python-based Telegram bot project called `stories-xbot` that handles story-related functionality. The project uses modern Python practices with UV for dependency management and includes both a regular bot and userbot components.
+This is a Python-based Telegram bot project called `telestories_bot` that handles story-related functionality. The project uses modern Python practices with UV for dependency management and includes both a regular bot and userbot components.
 
 ## Project Structure
 
-```
-py-storiesxbot/
+```text
+telestories_bot/
 ├── main.py                 # Main application entry point
-├── src/                    # Source code directory
-│   ├── main.py            # Alternative entry point
-│   ├── bot/               # Bot implementation
-│   │   └── bot.py         # Main bot logic
-│   ├── userbot/           # Userbot implementation
-│   │   └── userbot.py     # Userbot logic
-│   ├── config/            # Configuration files
-│   │   ├── settings.py    # Application settings
-│   │   └── supabase.py    # Supabase database configuration
-│   ├── db/                # Database layer
-│   │   ├── models.py      # Database models
-│   │   └── repository.py  # Data access layer
-│   ├── controllers/       # Request handlers
-│   ├── services/          # Business logic
-│   └── utils/             # Utility functions
-├── alembic/               # Database migrations
-├── scripts/               # Utility scripts
-└── tests/                 # Test files
+├── bot/                    # Main bot application
+├── userbot/                # Userbot application
+├── config/                 # Configuration
+├── db/                     # Database-related modules
+├── alembic/                # Database migrations
+├── scripts/                # Various scripts
+├── tests/                  # Tests
+├── locales/                # Localization files
+├── utils/                  # Utility functions
+├── pyproject.toml          # Project configuration and dependencies
+└── requirements.txt        # Pinned dependencies for production
 ```
 
 ## Technology Stack
