@@ -32,10 +32,10 @@ async def start_userbot() -> None:
             f"Platform: {platform.system()} {platform.release()}"
         )
 
-        msg = f"✅ Userbot authenticated as: {me.first_name} (@{me.username}, id={me.id})\nDevice info: {device_info}"
+        msg = f"✅ Userbot authenticated as: {me.first_name} (@{me.username}, id={me.id}) | Device info: {device_info}"
         await app.send_message("me", msg)
 
-        LOGGER.info("Self-check message sent to Saved Messages: %s", msg)
+        LOGGER.info("Self-check message sent to Saved Messages: %s", msg[:60] + "...")
         await idle()
     except Exception as e:
         LOGGER.exception("Error during userbot authentication or self-check: %s", e)

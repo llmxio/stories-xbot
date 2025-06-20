@@ -83,13 +83,13 @@ class AsyncSessionManager:
 
     def get_engine(self) -> AsyncEngine:
         if self._engine is None:
-            raise RuntimeError("AsyncSessionManager is not initialized")
+            raise SQLAlchemyError("AsyncSessionManager is not initialized")
 
         return self._engine
 
     async def close(self):
         if self._engine is None:
-            raise RuntimeError("AsyncSessionManager is not initialized")
+            raise SQLAlchemyError("AsyncSessionManager is not initialized")
         await self._engine.dispose()
 
         self._engine = None
@@ -98,7 +98,7 @@ class AsyncSessionManager:
     @asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:
         if self._engine is None:
-            raise RuntimeError("AsyncSessionManager is not initialized")
+            raise SQLAlchemyError("AsyncSessionManager is not initialized")
 
         async with self._engine.begin() as connection:
             try:
@@ -110,7 +110,7 @@ class AsyncSessionManager:
     @asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:
         if self._sessionmaker is None:
-            raise RuntimeError("AsyncSessionManager is not initialized")
+            raise SQLAlchemyError("AsyncSessionManager is not initialized")
 
         session = self._sessionmaker()
         try:
@@ -159,74 +159,7 @@ session_engine = session_manager.get_engine()
 @event.listens_for(session_engine.sync_engine, "connect")
 def connect(dbapi_connection: DBAPIConnection, _connection_record):
     """Set up connection-level configuration."""
-    logger.debug("New database connection established (id: %s)", dbapi_connection)
-
-
-#     # For psycopg2, we need to handle connection setup differently
-#     # if hasattr(dbapi_connection, "set_session"):
-#     #     # Ensure we're in a clean state
-#     #     dbapi_connection.set_session(readonly=False, autocommit=False)
-
-
-# @event.listens_for(engine.sync_engine, "checkout")
-# def checkout(
-#     dbapi_connection: DBAPIConnection,
-#     connection_record: ConnectionPoolEntry,
-#     _connection_proxy: ConnectionPoolEntry,
-# ):
-#     """Perform health check on connection checkout."""
-#     logger.debug(
-#         "Checking out database connection (id: %d)",
-#         id(dbapi_connection),
-#     )
-#     try:
-#         # For psycopg2, execute a simple query to test the connection
-#         cursor = dbapi_connection.cursor()
-#         cursor.execute("SELECT 1")
-#         cursor.close()
-#     except Exception as e:
-#         logger.warning(
-#             "Connection health check failed (id: %d): %s",
-#             id(dbapi_connection),
-#             e,
-#         )
-#         connection_record.invalidate(e)
-#         raise DisconnectionError() from e
-
-
-# @event.listens_for(engine.sync_engine, "checkin")
-# def checkin(dbapi_connection: DBAPIConnection, _connection_record: ConnectionPoolEntry):
-#     """Log when a connection is checked back into the pool."""
-#     logger.debug(
-#         "Connection returned to pool (id: %d)",
-#         id(dbapi_connection),
-#     )
-
-
-# @event.listens_for(engine.sync_engine, "reset")
-# def reset(dbapi_connection: DBAPIConnection, _connection_record: ConnectionPoolEntry):
-#     """Reset connection state."""
-#     logger.debug(
-#         "Connection reset (id: %d)",
-#         id(dbapi_connection),
-#     )
-#     # # For psycopg2, ensure we reset the connection state
-#     # if hasattr(dbapi_connection, "set_session"):
-#     #     dbapi_connection.set_session(readonly=False, autocommit=False)
-
-
-# @event.listens_for(engine.sync_engine, "invalidate")
-# def invalidate(
-#     dbapi_connection: DBAPIConnection,
-#     _connection_record: ConnectionPoolEntry,
-#     exception: SQLAlchemyError,
-# ):
-#     """Log when a connection is invalidated."""
-#     logger.warning(
-#         "Connection invalidated (id: %d) due to error: %s",
-#         id(dbapi_connection),
-#         exception,
-#     )
+    logger.debug("New database connection established: %s", dbapi_connection)
 
 
 async def get_session():

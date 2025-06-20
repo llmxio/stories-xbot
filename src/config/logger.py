@@ -9,6 +9,41 @@ from config import get_config
 config = get_config()
 
 
+class LoggerFormatter(logging.Formatter):
+    FORMAT = "[%(levelname)s] [%(name)s] %(message)s"
+
+    # ANSI color codes
+    COLORS = {
+        "debug": "\033[90m",  # Gray
+        "info ": "\033[32m",  # Green
+        "warn ": "\033[33m",  # Yellow
+        "error": "\033[31m",  # Red
+        "reset": "\033[0m",  # Reset
+    }
+
+    def format(self, record: logging.LogRecord):
+        levelname = record.levelname.lower()
+        color = self.COLORS.get(levelname, self.COLORS["reset"])
+        formatter = logging.Formatter(f"{color}{self.FORMAT}{self.COLORS['reset']}", "%Y-%m-%d %H:%M:%S")
+        return formatter.format(record)
+
+
+# define custom log level names
+logging.addLevelName(logging.DEBUG, "debug")
+logging.addLevelName(logging.INFO, "info ")
+logging.addLevelName(logging.WARNING, "warn ")
+logging.addLevelName(logging.ERROR, "error")
+
+log_levels = {
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warn": logging.WARNING,
+    "error": logging.ERROR,
+}
+
+LOG_LEVEL = log_levels.get(config.LOG_LEVEL, logging.DEBUG)
+
+
 def initialize_project_logger(
     name: Optional[str] = None,
     path_dir_where_to_store_logs: str = "logs",
@@ -24,7 +59,7 @@ def initialize_project_logger(
     """
 
     logger = logging.getLogger(name)
-    logger.setLevel(getattr(logging, log_level.upper(), log_level))
+    logger.setLevel(LOG_LEVEL)
     logger.propagate = is_to_propagate_to_root_logger
 
     # Remove all handlers associated with the logger object
@@ -32,13 +67,11 @@ def initialize_project_logger(
         logger.removeHandler(handler)
 
     # Common formatter for all handlers
-    formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)s | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
+    formatter = LoggerFormatter()
 
     # Console handler for stdout (DEBUG, INFO, WARNING)
     stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(log_level)
+    stdout_handler.setLevel(LOG_LEVEL)
     stdout_handler.setFormatter(formatter)
     logger.addHandler(stdout_handler)
 
@@ -67,5 +100,5 @@ def initialize_project_logger(
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
-    initialize_project_logger(name, log_level=get_config().LOG_LEVEL)
+    initialize_project_logger(name)
     return logging.getLogger(name)

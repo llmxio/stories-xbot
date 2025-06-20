@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import get_logger
 
-from .models import Base, Chat, Story, User
+from ..models.models import Base, Chat, Story, User
 from .redis import CachedUser
 from .schemas import User as UserSchema
 

@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 # pyright: reportAttributeAccessIssue=false,reportUnknownVariableType=false
 # pylint: disable=no-name-in-module,import-error
 from alembic import context
-from db.models import Base
+from models.models import Base
 
 # add src to sys.path
 # sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "../src")))

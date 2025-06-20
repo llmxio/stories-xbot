@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from db import Base
-from db.models import Chat, ChatType, User
+from models.models import Chat, ChatType, User
 from db.repository import UserRepository
 from db.schemas import User
 
@@ -69,7 +69,7 @@ async def test_user_repository_async_operations(db_session: AsyncSession):
 
     # Create a user using the repository
     repo = UserRepository(db_session)
-    user_data = User(chat_id=99999, is_bot=False, is_premium=True, id=1, first_name="Test", blocked_at=None)
+    user_data = User(chat_id=99999, is_bot=False, is_premium=True, first_name="Test")
     user = await repo.create(user_data)
 
     # Verify user was created correctly

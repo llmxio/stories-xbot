@@ -12,7 +12,7 @@ LOG = get_logger(__name__)
 
 async def main():
     try:
-        LOG.info("Starting main loop")
+        LOG.warning("Starting main loop")
 
         async with session_manager.session() as session:
             await asyncio.gather(
@@ -30,4 +30,6 @@ if __name__ == "__main__":
         uvloop.install()
         asyncio.run(main())
     except KeyboardInterrupt:
-        LOG.info("Main loop stopped")
+        pass
+    finally:
+        LOG.warning("Main loop stopped")

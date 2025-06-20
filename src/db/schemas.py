@@ -51,6 +51,7 @@ class Story(AiogramStory):
 class User(AiogramUser):
     model_config = ConfigDict(from_attributes=True, frozen=False)
 
+    id: int = Field(..., description="User ID")
     chat_id: int = Field(..., description="Chat ID")
     is_bot: bool = Field(default=False, description="Is bot")
     is_premium: bool = Field(default=False, description="Is premium")

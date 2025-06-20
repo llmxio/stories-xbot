@@ -4,13 +4,13 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from config import get_logger
-from db.models import (
+from models.models import (
     Chat as ChatDB,
 )
-from db.models import (
+from models.models import (
     InvalidLinkViolation,
 )
-from db.models import (
+from models.models import (
     User as UserDB,
 )
 from db.redis import CachedUser
