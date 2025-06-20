@@ -8,7 +8,7 @@ Base = declarative_base()
 
 class BugReport(Base):
     __tablename__ = "bug_report"
-    id = sa.Column(sa.BigInteger, sa.Identity(start=1, cycle=True), primary_key=True)
+    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     username = sa.Column(sa.String)
     description = sa.Column(sa.String)
@@ -17,7 +17,7 @@ class BugReport(Base):
 
 class DownloadQueue(Base):
     __tablename__ = "download_queue"
-    id = sa.Column(sa.BigInteger, sa.Identity(start=1, cycle=True), primary_key=True)
+    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     target_username = sa.Column(sa.String)
     status = sa.Column(sa.String)
@@ -38,13 +38,11 @@ class MonitorSentStory(Base):
     __tablename__ = "monitor_sent_story"
     monitor_id = sa.Column(
         sa.BigInteger,
-        sa.Identity(start=1, cycle=True),
         sa.ForeignKey("monitor.id"),
         primary_key=True,
     )
     story_id = sa.Column(
         sa.BigInteger,
-        sa.Identity(start=1, cycle=True),
         sa.ForeignKey("story.id"),
         primary_key=True,
     )
@@ -53,7 +51,7 @@ class MonitorSentStory(Base):
 
 class Monitor(Base):
     __tablename__ = "monitor"
-    id = sa.Column(sa.BigInteger, sa.Identity(start=1, cycle=True), primary_key=True)
+    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     target_username = sa.Column(sa.String)
     last_checked = sa.Column(sa.DateTime)
@@ -62,7 +60,7 @@ class Monitor(Base):
 
 class Story(Base):
     __tablename__ = "story"
-    id = sa.Column(sa.BigInteger, sa.Identity(start=1, cycle=True), primary_key=True)
+    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
     user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
     media_url = sa.Column(sa.String, nullable=False)
     is_viewed = sa.Column(sa.Boolean, default=False, nullable=False)
@@ -73,7 +71,7 @@ class Story(Base):
 
 class Task(Base):
     __tablename__ = "task"
-    id = sa.Column(sa.BigInteger, sa.Identity(start=1, cycle=True), primary_key=True)
+    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     status = sa.Column(sa.String)
     task_details = sa.Column(sa.String)
@@ -90,7 +88,7 @@ class Task(Base):
 class User(Base):
     __tablename__ = "user"
 
-    id = sa.Column(sa.BigInteger, sa.Identity(start=1, cycle=True), primary_key=True)
+    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
     username = sa.Column(sa.String, unique=True, index=True)
     is_bot = sa.Column(sa.Boolean, default=False, nullable=False)
@@ -101,7 +99,7 @@ class User(Base):
 
 class Chat(Base):
     __tablename__ = "chat"
-    id = sa.Column(sa.BigInteger, sa.Identity(start=1, cycle=True), primary_key=True)
+    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
     type = sa.Column(sa.String, nullable=False)
     title = sa.Column(sa.String, nullable=True)
     username = sa.Column(sa.String, nullable=True)

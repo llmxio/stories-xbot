@@ -6,7 +6,7 @@ from bot.bot import start_bot
 from config.config import Config, get_config
 from config.logger import get_logger
 from db.session import get_db_session
-from userbot.userbot import start_userbot
+from services.userbot import start_userbot
 
 LOGGER = get_logger(__name__)
 

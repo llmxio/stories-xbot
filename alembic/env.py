@@ -1,23 +1,28 @@
+import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context  # type: ignore[attr-defined]
+from alembic import context
 from db.models import Base
+
+# add src to sys.path
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-config = context.config  # type: ignore[attr-defined]
-
-print(config.get_main_option("sqlalchemy.url"))
+config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here for 'autogenerate' support
-# This ensures Alembic can detect changes in all models for migrations
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -64,13 +69,13 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)  # type: ignore[attr-defined]
+        context.configure(connection=connection, target_metadata=target_metadata)
 
-        with context.begin_transaction():  # type: ignore[attr-defined]
-            context.run_migrations()  # type: ignore[attr-defined]
+        with context.begin_transaction():
+            context.run_migrations()
 
 
-if context.is_offline_mode():  # type: ignore[attr-defined]
+if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
