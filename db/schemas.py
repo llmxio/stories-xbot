@@ -48,6 +48,8 @@ class UserBase(BaseModel):
     username: str = Field(..., description="Username")
     is_bot: bool = Field(..., description="Is bot")
     is_premium: bool = Field(..., description="Is premium")
+    is_blocked: bool = Field(..., description="Is blocked")
+    blocked_at: Optional[datetime] = Field(None, description="Blocked at")
 
 
 class UserCreate(UserBase):
@@ -57,15 +59,6 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int = Field(..., description="User ID")
     created_at: datetime = Field(default_factory=datetime.now)
-
-    class Config:
-        from_attributes = True
-
-
-class BlockedUser(BaseModel):
-    chat_id: int = Field(..., description="Chat ID")
-    blocked_at: datetime = Field(default_factory=datetime.now, description="Blocked at")
-    is_bot: int = Field(..., description="Is bot")
 
     class Config:
         from_attributes = True
@@ -125,15 +118,6 @@ class Monitor(BaseModel):
         from_attributes = True
 
 
-class ProfileRequest(BaseModel):
-    chat_id: int = Field(..., description="Chat ID")
-    target_username: str = Field(..., description="Target username")
-    requested_at: datetime = Field(default_factory=datetime.now, description="Requested at")
-
-    class Config:
-        from_attributes = True
-
-
 class Task(BaseModel):
     id: str = Field(..., description="Task ID")
     chat_id: int = Field(..., description="Chat ID")
@@ -147,14 +131,6 @@ class Task(BaseModel):
     description: str = Field(..., description="Description")
     created_at: datetime = Field(default_factory=datetime.now, description="Created at")
     updated_at: datetime = Field(default_factory=datetime.now, description="Updated at")
-
-    class Config:
-        from_attributes = True
-
-
-class UserRequestLog(BaseModel):
-    chat_id: int = Field(..., description="Chat ID")
-    requested_at: datetime = Field(default_factory=datetime.now, description="Requested at")
 
     class Config:
         from_attributes = True

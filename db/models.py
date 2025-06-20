@@ -6,15 +6,8 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
-class BlockedUser(Base):
-    __tablename__ = "blocked_users"
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
-    blocked_at = sa.Column(sa.DateTime, default=datetime.now)
-    is_bot = sa.Column(sa.Integer)
-
-
 class BugReport(Base):
-    __tablename__ = "bug_reports"
+    __tablename__ = "bug_report"
     id = sa.Column(sa.BigInteger, primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     username = sa.Column(sa.String)
@@ -35,21 +28,21 @@ class DownloadQueue(Base):
 
 
 class InvalidLinkViolation(Base):
-    __tablename__ = "invalid_link_violations"
+    __tablename__ = "invalid_link_violation"
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
     count = sa.Column(sa.Integer)
     suspended_until = sa.Column(sa.DateTime)
 
 
 class MonitorSentStory(Base):
-    __tablename__ = "monitor_sent_stories"
+    __tablename__ = "monitor_sent_story"
     monitor_id = sa.Column(sa.BigInteger, primary_key=True)
     story_id = sa.Column(sa.BigInteger, primary_key=True)
     expires_at = sa.Column(sa.DateTime)
 
 
 class Monitor(Base):
-    __tablename__ = "monitors"
+    __tablename__ = "monitor"
     id = sa.Column(sa.BigInteger, primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     target_username = sa.Column(sa.String)
@@ -57,15 +50,8 @@ class Monitor(Base):
     created_at = sa.Column(sa.DateTime, default=datetime.now)
 
 
-class ProfileRequest(Base):
-    __tablename__ = "profile_requests"
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
-    target_username = sa.Column(sa.String, primary_key=True)
-    requested_at = sa.Column(sa.DateTime, default=datetime.now)
-
-
 class Task(Base):
-    __tablename__ = "tasks"
+    __tablename__ = "task"
     id = sa.Column(sa.String, primary_key=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"))
     status = sa.Column(sa.String)
@@ -80,20 +66,15 @@ class Task(Base):
     updated_at = sa.Column(sa.DateTime, default=datetime.now, onupdate=datetime.now)
 
 
-class UserRequestLog(Base):
-    __tablename__ = "user_request_log"
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), primary_key=True)
-    requested_at = sa.Column(sa.DateTime, default=datetime.now, primary_key=True)
-
-
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "user"
 
     id = sa.Column(sa.BigInteger, primary_key=True, index=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chats.id"), index=True)
     username = sa.Column(sa.String, unique=True, index=True)
     is_bot = sa.Column(sa.Boolean, default=False, nullable=False)
     is_premium = sa.Column(sa.Boolean, default=False, nullable=False)
+    is_blocked = sa.Column(sa.Boolean, default=False, nullable=False)
     created_at = sa.Column(sa.DateTime, default=datetime.now)
 
 
