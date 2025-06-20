@@ -1,67 +1,54 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from aiogram.types import Chat as AiogramChat
+from aiogram.types import Story as AiogramStory
+from aiogram.types import User as AiogramUser
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class Story(BaseModel):
-    """Story model for storing story information."""
-
-    id: int = Field(..., description="Story ID")
-    user_id: int = Field(..., description="User ID who posted the story")
-    media_url: str = Field(..., description="URL to the story media")
-    is_viewed: bool = Field(default=False, description="Whether the story has been viewed")
+class Chat(AiogramChat):
     created_at: datetime = Field(default_factory=datetime.now)
-    expires_at: Optional[datetime] = Field(None, description="Story expiration time")
-    viewed_at: Optional[datetime] = Field(None, description="When the story was viewed")
+
+    model_config = ConfigDict(from_attributes=True)
 
 
-class Profile(BaseModel):
-    """Profile model for storing profile monitoring information."""
-
-    id: int = Field(..., description="Profile ID")
-    user_id: int = Field(..., description="User ID who is monitoring")
-    target_username: str = Field(..., description="Username being monitored")
-    target_phone: Optional[str] = Field(None, description="Phone number being monitored")
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    is_active: bool = Field(default=True)
-    last_check: Optional[datetime] = Field(None, description="Last time the profile was checked")
+class Story(AiogramStory):
+    model_config = ConfigDict(from_attributes=True)
 
 
-class Payment(BaseModel):
-    """Payment model for storing payment information."""
+# class Profile(BaseModel):
+#     """Profile model for storing profile monitoring information."""
 
-    id: int = Field(..., description="Payment ID")
-    user_id: int = Field(..., description="User ID who made the payment")
-    amount: float = Field(..., description="Payment amount")
-    currency: str = Field(..., description="Payment currency")
-    status: str = Field(..., description="Payment status")
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    transaction_id: Optional[str] = Field(None, description="Transaction ID")
-    payment_method: str = Field(..., description="Payment method used")
+#     id: int = Field(..., description="Profile ID")
+#     user_id: int = Field(..., description="User ID who is monitoring")
+#     target_username: str = Field(..., description="Username being monitored")
+#     target_phone: Optional[str] = Field(None, description="Phone number being monitored")
+#     created_at: datetime = Field(default_factory=datetime.now)
+#     updated_at: datetime = Field(default_factory=datetime.now)
+#     is_active: bool = Field(default=True)
+#     last_check: Optional[datetime] = Field(None, description="Last time the profile was checked")
 
 
-class UserBase(BaseModel):
-    chat_id: int = Field(..., description="Chat ID")
-    username: str = Field(..., description="Username")
-    is_bot: bool = Field(..., description="Is bot")
-    is_premium: bool = Field(..., description="Is premium")
+# class Payment(BaseModel):
+#     """Payment model for storing payment information."""
+
+#     id: int = Field(..., description="Payment ID")
+#     user_id: int = Field(..., description="User ID who made the payment")
+#     amount: float = Field(..., description="Payment amount")
+#     currency: str = Field(..., description="Payment currency")
+#     status: str = Field(..., description="Payment status")
+#     created_at: datetime = Field(default_factory=datetime.now)
+#     updated_at: datetime = Field(default_factory=datetime.now)
+#     transaction_id: Optional[str] = Field(None, description="Transaction ID")
+#     payment_method: str = Field(..., description="Payment method used")
+
+
+class User(AiogramUser):
     is_blocked: bool = Field(..., description="Is blocked")
     blocked_at: Optional[datetime] = Field(None, description="Blocked at")
 
-
-class UserCreate(UserBase):
-    pass
-
-
-class User(UserBase):
-    id: int = Field(..., description="User ID")
-    created_at: datetime = Field(default_factory=datetime.now)
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BugReport(BaseModel):
@@ -71,8 +58,7 @@ class BugReport(BaseModel):
     description: str = Field(..., description="Description")
     created_at: datetime = Field(default_factory=datetime.now, description="Created at")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DownloadQueue(BaseModel):
@@ -85,8 +71,7 @@ class DownloadQueue(BaseModel):
     error: Optional[str] = Field(None, description="Error message")
     task_details: Optional[str] = Field(None, description="Task details")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class InvalidLinkViolation(BaseModel):
@@ -94,8 +79,7 @@ class InvalidLinkViolation(BaseModel):
     count: int = Field(..., description="Count")
     suspended_until: datetime = Field(..., description="Suspended until")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MonitorSentStory(BaseModel):
@@ -103,8 +87,7 @@ class MonitorSentStory(BaseModel):
     story_id: int = Field(..., description="Story ID")
     expires_at: datetime = Field(..., description="Expires at")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Monitor(BaseModel):
@@ -114,8 +97,7 @@ class Monitor(BaseModel):
     last_checked: datetime = Field(..., description="Last checked")
     created_at: datetime = Field(default_factory=datetime.now)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Task(BaseModel):
@@ -132,19 +114,4 @@ class Task(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description="Created at")
     updated_at: datetime = Field(default_factory=datetime.now, description="Updated at")
 
-    class Config:
-        from_attributes = True
-
-
-class Chat(BaseModel):
-    id: int = Field(..., description="Chat ID")
-    type: str = Field(..., description="Chat type")
-    title: Optional[str] = Field(None, description="Chat title")
-    username: Optional[str] = Field(None, description="Chat username")
-    first_name: Optional[str] = Field(None, description="First name")
-    last_name: Optional[str] = Field(None, description="Last name")
-    is_forum: bool = Field(default=False, description="Is forum")
-    created_at: datetime = Field(default_factory=datetime.now)
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

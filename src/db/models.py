@@ -1,9 +1,18 @@
+import enum
 from datetime import datetime
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
+
+
+class ChatType(str, enum.Enum):
+    PRIVATE = "private"
+    GROUP = "group"
+    SUPERGROUP = "supergroup"
+    CHANNEL = "channel"
 
 
 class BugReport(Base):
@@ -27,26 +36,26 @@ class DownloadQueue(Base):
     task_details = sa.Column(sa.String)
 
 
-class InvalidLinkViolation(Base):
-    __tablename__ = "invalid_link_violation"
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), primary_key=True)
-    count = sa.Column(sa.Integer)
-    suspended_until = sa.Column(sa.DateTime)
+# class InvalidLinkViolation(Base):
+#     __tablename__ = "invalid_link_violation"
+#     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), primary_key=True)
+#     count = sa.Column(sa.Integer)
+#     suspended_until = sa.Column(sa.DateTime)
 
 
-class MonitorSentStory(Base):
-    __tablename__ = "monitor_sent_story"
-    monitor_id = sa.Column(
-        sa.BigInteger,
-        sa.ForeignKey("monitor.id"),
-        primary_key=True,
-    )
-    story_id = sa.Column(
-        sa.BigInteger,
-        sa.ForeignKey("story.id"),
-        primary_key=True,
-    )
-    expires_at = sa.Column(sa.DateTime)
+# class MonitorSentStory(Base):
+#     __tablename__ = "monitor_sent_story"
+#     monitor_id = sa.Column(
+#         sa.BigInteger,
+#         sa.ForeignKey("monitor.id"),
+#         primary_key=True,
+#     )
+#     story_id = sa.Column(
+#         sa.BigInteger,
+#         sa.ForeignKey("story.id"),
+#         primary_key=True,
+#     )
+#     expires_at = sa.Column(sa.DateTime)
 
 
 class Monitor(Base):
@@ -61,7 +70,7 @@ class Monitor(Base):
 class Story(Base):
     __tablename__ = "story"
     id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
-    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
+    user_id = sa.Column(sa.BigInteger, sa.ForeignKey("user.id"), nullable=False)
     media_url = sa.Column(sa.String, nullable=False)
     is_viewed = sa.Column(sa.Boolean, default=False, nullable=False)
     created_at = sa.Column(sa.DateTime, default=datetime.now)
@@ -89,8 +98,7 @@ class User(Base):
     __tablename__ = "user"
 
     id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
-    chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"))
-    username = sa.Column(sa.String, unique=True, index=True)
+    username = sa.Column(sa.String)
     is_bot = sa.Column(sa.Boolean, default=False, nullable=False)
     is_premium = sa.Column(sa.Boolean, default=False, nullable=False)
     is_blocked = sa.Column(sa.Boolean, default=False, nullable=False)
@@ -99,8 +107,8 @@ class User(Base):
 
 class Chat(Base):
     __tablename__ = "chat"
-    id = sa.Column(sa.BigInteger, sa.Identity(), primary_key=True)
-    type = sa.Column(sa.String, nullable=False)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=False)
+    type = sa.Column(ENUM(ChatType, name="chat_type"), nullable=False)
     title = sa.Column(sa.String, nullable=True)
     username = sa.Column(sa.String, nullable=True)
     first_name = sa.Column(sa.String, nullable=True)

@@ -1,15 +1,16 @@
-import os
-import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
+# pyright: reportAttributeAccessIssue=false,reportUnknownVariableType=false
+# pylint: disable=no-name-in-module,import-error
 from alembic import context
 from db.models import Base
 
 # add src to sys.path
-sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "../src")))
 
+# pyright: reportUnknownMemberType=false,reportUnknownArgumentType=false
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -24,6 +25,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 
 target_metadata = Base.metadata
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
