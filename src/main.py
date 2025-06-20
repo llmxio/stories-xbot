@@ -2,27 +2,26 @@ import asyncio
 
 import uvloop
 
-from bot.bot import start_bot
-from config.config import Config, get_config
-from config.logger import get_logger
-from db.session import get_db_session
-from services.userbot import start_userbot
+from bot import start_bot
+from config import get_config, get_logger
+from db import get_db_session
+from userbot import start_userbot
 
-LOGGER = get_logger(__name__)
+LOG = get_logger(__name__, log_level=get_config().LOG_LEVEL)
 
 
 async def main():
-    # Load settings
-    settings: Config = get_config()
-
     try:
+        LOG.info("Starting main loop")
+
         # Start both bot and userbot with session management
         async with get_db_session() as session:
-            bot_task = asyncio.create_task(start_bot(settings, session))
-            userbot_task = asyncio.create_task(start_userbot(settings))
-            await asyncio.gather(bot_task, userbot_task)
+            await asyncio.gather(
+                asyncio.create_task(start_bot(session)),
+                asyncio.create_task(start_userbot()),
+            )
     except Exception as e:
-        LOGGER.exception("Error in main loop: %s", e)
+        LOG.exception("Error in main loop: %s", e)
         raise
 
 
@@ -31,4 +30,4 @@ if __name__ == "__main__":
         uvloop.install()
         asyncio.run(main())
     except KeyboardInterrupt:
-        LOGGER.info("Bot stopped by user")
+        LOG.info("Main loop stopped")

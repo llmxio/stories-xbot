@@ -1,19 +1,24 @@
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession as Session
 
 from bot.handlers import get_routers
 from bot.middlewares import LoggingMiddleware, LongOperation, UserMiddleware
-from config import Config, get_logger
+from config import get_config, get_logger
 
-LOG = get_logger(__name__, log_level="DEBUG")
+LOG_LEVEL = get_config().LOG_LEVEL
+
+LOG = get_logger(__name__, log_level=LOG_LEVEL)
 
 
-async def start_bot(settings: Config, session: Session) -> None:
+async def start_bot(session: Session) -> None:
     """Start the Telegram bot."""
+
+    config = get_config()
+
     # Initialize bot and dispatcher
-    bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
 
     # Initialize middlewares
@@ -26,6 +31,7 @@ async def start_bot(settings: Config, session: Session) -> None:
 
     try:
         LOG.debug("Starting bot...")
+        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)  # type: ignore
     except Exception as e:
         LOG.exception("Error in bot: %s", e)

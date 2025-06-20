@@ -15,8 +15,6 @@ class StoryBase(BaseModel):
 class StoryCreate(StoryBase):
     """Story create schema."""
 
-    pass
-
 
 class StoryUpdate(BaseModel):
     """Story update schema."""
@@ -79,32 +77,11 @@ class Story(AiogramStory):
 #     payment_method: str = Field(..., description="Payment method used")
 
 
-class UserBase(BaseModel):
-    """Base user schema."""
-
+class User(AiogramUser):
     chat_id: int = Field(..., description="Chat ID")
     is_bot: bool = Field(default=False, description="Is bot")
     is_premium: bool = Field(default=False, description="Is premium")
     is_blocked: bool = Field(default=False, description="Is blocked")
-
-
-class UserCreate(UserBase):
-    """User create schema."""
-
-    pass
-
-
-class UserUpdate(BaseModel):
-    """User update schema."""
-
-    is_bot: bool | None = None
-    is_premium: bool | None = None
-    is_blocked: bool | None = None
-
-
-class User(AiogramUser):
-    chat_id: int = Field(..., description="Chat ID")
-    is_blocked: bool = Field(..., description="Is blocked")
     blocked_at: Optional[datetime] = Field(None, description="Blocked at")
 
     model_config = ConfigDict(from_attributes=True)

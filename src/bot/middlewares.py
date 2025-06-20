@@ -6,7 +6,7 @@ from aiogram import BaseMiddleware
 from aiogram.dispatcher.flags import get_flag
 from aiogram.types import Message, TelegramObject
 from aiogram.utils.chat_action import ChatActionSender
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession as Session
 
 from config import get_config, get_logger
 from db.redis import CachedUser
@@ -64,11 +64,7 @@ class UserMiddleware(BaseMiddleware):
                 cached_user = CachedUser.get_from_cache(existing_user.id)
 
         # Check if user is blocked (using cached data if available)
-        if (
-            cached_user
-            and cached_user.is_blocked
-            or (not cached_user and self.user_repo.is_user_blocked(chat_id))
-        ):
+        if cached_user and cached_user.is_blocked or (not cached_user and self.user_repo.is_user_blocked(chat_id)):
             logger.info("Blocked user %d attempted to use the bot", user_id)
             return
 
@@ -103,9 +99,9 @@ class UserMiddleware(BaseMiddleware):
             should_save = True
         else:
             # Check if any user attributes have changed
-            if cached_user.is_premium != (
-                event.from_user.is_premium or False
-            ) or cached_user.username != (event.from_user.username or ""):
+            if cached_user.is_premium != (event.from_user.is_premium or False) or cached_user.username != (
+                event.from_user.username or ""
+            ):
                 should_save = True
 
         if should_save:
@@ -179,7 +175,7 @@ class LongOperation(BaseMiddleware):
     async def __call__(
         self,
         handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
-        event: Message,
+        event: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
         long_operation_type = get_flag(data, "long_operation")

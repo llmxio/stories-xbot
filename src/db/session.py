@@ -4,18 +4,18 @@ import re
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from sqlalchemy import text
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy import event, text
+from sqlalchemy.engine.interfaces import DBAPIConnection
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import ConnectionPoolEntry, NullPool
 
-from config.config import get_config
-from config.logger import get_logger
+from config import get_config, get_logger
 
-logger = get_logger(__name__)
+config = get_config()
+logger = get_logger(__name__, log_level=config.LOG_LEVEL)
 
 # Get database URL from config
-config = get_config()
 
 
 def get_async_database_url(database_url: str) -> str:
@@ -88,27 +88,33 @@ engine = create_async_engine(async_database_url, **engine_kwargs)
 
 # Create session factory
 SessionLocal = async_sessionmaker(
+    bind=engine,
     autocommit=False,
     autoflush=False,
-    bind=engine,
+    expire_on_commit=False,
 )
 
 
-# @event.listens_for(Engine, "connect")
-# def connect(dbapi_connection, connection_record):
+# @event.listens_for(engine.sync_engine, "connect")
+# def connect(dbapi_connection: DBAPIConnection, _connection_record: ConnectionPoolEntry):
 #     """Set up connection-level configuration."""
 #     logger.debug(
 #         "New database connection established (id: %d)",
 #         id(dbapi_connection),
 #     )
+
 #     # For psycopg2, we need to handle connection setup differently
-#     if hasattr(dbapi_connection, "set_session"):
-#         # Ensure we're in a clean state
-#         dbapi_connection.set_session(readonly=False, autocommit=False)
+#     # if hasattr(dbapi_connection, "set_session"):
+#     #     # Ensure we're in a clean state
+#     #     dbapi_connection.set_session(readonly=False, autocommit=False)
 
 
-# @event.listens_for(Engine, "checkout")
-# def checkout(dbapi_connection, connection_record, connection_proxy):
+# @event.listens_for(engine.sync_engine, "checkout")
+# def checkout(
+#     dbapi_connection: DBAPIConnection,
+#     connection_record: ConnectionPoolEntry,
+#     _connection_proxy: ConnectionPoolEntry,
+# ):
 #     """Perform health check on connection checkout."""
 #     logger.debug(
 #         "Checking out database connection (id: %d)",
@@ -129,8 +135,8 @@ SessionLocal = async_sessionmaker(
 #         raise DisconnectionError() from e
 
 
-# @event.listens_for(Engine, "checkin")
-# def checkin(dbapi_connection, connection_record):
+# @event.listens_for(engine.sync_engine, "checkin")
+# def checkin(dbapi_connection: DBAPIConnection, _connection_record: ConnectionPoolEntry):
 #     """Log when a connection is checked back into the pool."""
 #     logger.debug(
 #         "Connection returned to pool (id: %d)",
@@ -138,20 +144,24 @@ SessionLocal = async_sessionmaker(
 #     )
 
 
-# @event.listens_for(Engine, "reset")
-# def reset(dbapi_connection, connection_record):
+# @event.listens_for(engine.sync_engine, "reset")
+# def reset(dbapi_connection: DBAPIConnection, _connection_record: ConnectionPoolEntry):
 #     """Reset connection state."""
 #     logger.debug(
 #         "Connection reset (id: %d)",
 #         id(dbapi_connection),
 #     )
-#     # For psycopg2, ensure we reset the connection state
-#     if hasattr(dbapi_connection, "set_session"):
-#         dbapi_connection.set_session(readonly=False, autocommit=False)
+#     # # For psycopg2, ensure we reset the connection state
+#     # if hasattr(dbapi_connection, "set_session"):
+#     #     dbapi_connection.set_session(readonly=False, autocommit=False)
 
 
-# @event.listens_for(Engine, "invalidate")
-# def invalidate(dbapi_connection, _connection_record, exception):
+# @event.listens_for(engine.sync_engine, "invalidate")
+# def invalidate(
+#     dbapi_connection: DBAPIConnection,
+#     _connection_record: ConnectionPoolEntry,
+#     exception: SQLAlchemyError,
+# ):
 #     """Log when a connection is invalidated."""
 #     logger.warning(
 #         "Connection invalidated (id: %d) due to error: %s",
@@ -173,7 +183,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         await session.commit()
         logger.debug("Committed database session (id: %d)", session_id)
     except Exception as e:
-        logger.error(
+        logger.exception(
             "Error in database session (id: %d): %s",
             session_id,
             e,
@@ -182,8 +192,8 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             await session.rollback()
             logger.debug("Rolled back database session (id: %d)", session_id)
-        except Exception as rollback_error:
-            logger.error(
+        except SQLAlchemyError as rollback_error:
+            logger.exception(
                 "Failed to rollback session (id: %d): %s",
                 session_id,
                 rollback_error,
@@ -193,8 +203,8 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             await session.close()
             logger.debug("Closed database session (id: %d)", session_id)
-        except Exception as close_error:
-            logger.error(
+        except SQLAlchemyError as close_error:
+            logger.exception(
                 "Error while closing session (id: %d): %s",
                 session_id,
                 close_error,
@@ -215,8 +225,8 @@ async def get_session() -> AsyncSession:
         await session.execute(text("SELECT 1"))
         logger.debug("Successfully tested database connection (session id: %d)", session_id)
         return session
-    except DBAPIError as e:
-        logger.error(
+    except SQLAlchemyError as e:
+        logger.exception(
             "Failed to create database session (id: %d): %s",
             session_id,
             e,
@@ -225,10 +235,10 @@ async def get_session() -> AsyncSession:
         try:
             await session.close()
             logger.debug("Closed failed database session (id: %d)", session_id)
-        except Exception as close_error:
-            logger.error(
+        except SQLAlchemyError as exc:
+            logger.exception(
                 "Error while closing failed session (id: %d): %s",
                 session_id,
-                close_error,
+                exc,
             )
         raise

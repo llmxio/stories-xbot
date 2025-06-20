@@ -4,14 +4,16 @@ from pyrogram import __version__ as PYROGRAM_VERSION
 from pyrogram.client import Client
 from pyrogram.sync import idle
 
-from config import Config, get_logger
+from config import get_config, get_logger
 
 LOGGER = get_logger(__name__)
 
 
-async def start_userbot(config: Config) -> None:
+async def start_userbot() -> None:
     """Start the Telegram userbot with interactive authentication and self-check."""
     # Use a fixed session file name for compatibility with the original project
+
+    config = get_config()
 
     app = Client(
         name=config.USERBOT_SESSION_NAME,
@@ -30,10 +32,7 @@ async def start_userbot(config: Config) -> None:
             f"Platform: {platform.system()} {platform.release()}"
         )
 
-        msg = (
-            f"✅ Userbot authenticated as: {me.first_name} (@{me.username}, id={me.id})\n"
-            f"Device info: {device_info}"
-        )
+        msg = f"✅ Userbot authenticated as: {me.first_name} (@{me.username}, id={me.id})\nDevice info: {device_info}"
         await app.send_message("me", msg)
 
         LOGGER.info("Self-check message sent to Saved Messages: %s", msg)
