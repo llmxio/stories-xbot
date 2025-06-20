@@ -19,7 +19,7 @@ def temp_log_dir_fixture():
 def test_initialize_project_logger_stdout_stderr(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture[str],
-) -> None:
+):
     # Remove all handlers for root logger to avoid duplicate logs
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
@@ -33,7 +33,7 @@ def test_initialize_project_logger_stdout_stderr(
     assert "error message" in err
 
 
-def test_initialize_project_logger_file_handlers(temp_log_dir: str) -> None:
+def test_initialize_project_logger_file_handlers(temp_log_dir: str):
     logger_name = "file_logger"
     initialize_project_logger(logger_name, path_dir_where_to_store_logs=temp_log_dir, log_level="DEBUG")
     logger = logging.getLogger(logger_name)
@@ -55,7 +55,7 @@ def test_initialize_project_logger_file_handlers(temp_log_dir: str) -> None:
         assert "error file message" in contents
 
 
-def test_get_logger_initializes(monkeypatch: MonkeyPatch) -> None:
+def test_get_logger_initializes(monkeypatch: MonkeyPatch):
     logger = get_logger("get_logger_test")
     assert isinstance(logger, logging.Logger)
     logger.info("get_logger info")
