@@ -18,9 +18,9 @@ from aiogram.types import (
 from bot.filters import IsAdmin, IsPremium
 from bot.middlewares import LongOperation
 from config import get_config, get_logger
-from db.repository import ChatRepository, UserRepository
 from db.schemas import Chat as ChatSchema, User as UserSchema
 from db.session import get_session
+from services import ChatService, UserService
 from utils.i18n import t
 
 LOG = get_logger(__name__)
@@ -56,31 +56,34 @@ async def command_start_handler(message: Message) -> None:
     is_admin = message.from_user.id == BOT_ADMIN_ID
     is_premium = message.from_user.is_premium or False
 
-    session = await get_session()
+    async with get_session() as session:
+        print(session)
+
+    # session = await get_session()
     try:
         # Create chat record at the beginning
-        chat_repo = ChatRepository(session)
-        chat_data = ChatSchema(
-            id=message.chat.id,
-            type=message.chat.type,
-            title=getattr(message.chat, "title", None),
-            username=getattr(message.chat, "username", None),
-            first_name=getattr(message.chat, "first_name", None),
-            last_name=getattr(message.chat, "last_name", None),
-            is_forum=getattr(message.chat, "is_forum", False) or False,
-            created_at=getattr(message.chat, "created_at", None) or datetime.datetime.now(),
-        )
-        chat_repo.try_create_chat(chat_data)
+        # chat_repo = ChatRepository(session)
+        # chat_data = ChatSchema(
+        #     id=message.chat.id,
+        #     type=message.chat.type,
+        #     title=getattr(message.chat, "title", None),
+        #     username=getattr(message.chat, "username", None),
+        #     first_name=getattr(message.chat, "first_name", None),
+        #     last_name=getattr(message.chat, "last_name", None),
+        #     is_forum=getattr(message.chat, "is_forum", False) or False,
+        #     created_at=getattr(message.chat, "created_at", None) or datetime.datetime.now(),
+        # )
+        # chat_repo.try_create_chat(chat_data)
 
-        user_repo = UserRepository(session)
-        user_repo.save_user(
-            UserSchema(
-                chat_id=message.from_user.id,
-                username=message.from_user.username or "",
-                is_bot=is_bot,
-                is_premium=is_premium,
-            )
-        )
+        # user_repo = UserRepository(session)
+        # user_repo.save_user(
+        #     UserSchema(
+        #         chat_id=message.from_user.id,
+        #         username=message.from_user.username or "",
+        #         is_bot=is_bot,
+        #         is_premium=is_premium,
+        #     )
+        # )
 
         LOG.debug("User %d started the bot", message.from_user.id)
     except Exception as error:

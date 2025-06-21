@@ -12,13 +12,27 @@ class ChatCreate(AiogramChat):
 
 
 class Chat(AiogramChat):
-    created_at: datetime = Field(default_factory=datetime.now)
+    model_config = ConfigDict(from_attributes=True, frozen=False)
 
-    model_config = ConfigDict(from_attributes=True)
+    created_at: datetime = Field(default_factory=datetime.now)
 
 
 class Story(AiogramStory):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, frozen=False)
+
+
+class UserBase(AiogramUser):
+    model_config = ConfigDict(from_attributes=True, frozen=False)
+
+
+class UserCreate(UserBase):
+    chat_id: int = Field(..., description="Chat ID")
+
+
+class User(UserBase):
+    id: int = Field(..., description="User ID")
+    is_blocked: bool = Field(default=False, description="Is blocked")
+    blocked_at: Optional[datetime] = Field(default_factory=datetime.now, description="Blocked at")
 
 
 # class Profile(BaseModel):
@@ -46,17 +60,6 @@ class Story(AiogramStory):
 #     updated_at: datetime = Field(default_factory=datetime.now)
 #     transaction_id: Optional[str] = Field(None, description="Transaction ID")
 #     payment_method: str = Field(..., description="Payment method used")
-
-
-class User(AiogramUser):
-    model_config = ConfigDict(from_attributes=True, frozen=False)
-
-    id: int = Field(..., description="User ID")
-    chat_id: int = Field(..., description="Chat ID")
-    is_bot: bool = Field(default=False, description="Is bot")
-    is_premium: bool = Field(default=False, description="Is premium")
-    is_blocked: bool = Field(default=False, description="Is blocked")
-    blocked_at: Optional[datetime] = Field(default_factory=datetime.now, description="Blocked at")
 
 
 class BugReport(BaseModel):

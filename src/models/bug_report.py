@@ -2,10 +2,10 @@ from datetime import datetime
 
 import sqlalchemy as sa
 
-from .base import Base
+from .base import BaseSqlaModel
 
 
-class BugReport(Base):
+class BugReport(BaseSqlaModel):
     __tablename__ = "bug_report"
 
     id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True, index=True)

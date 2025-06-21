@@ -2,9 +2,9 @@
 
 import re
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, AsyncIterator, Optional
+from typing import Any, AsyncIterator, Optional
 
-from sqlalchemy import event, text
+from sqlalchemy import event
 from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
@@ -83,13 +83,13 @@ class AsyncSessionManager:
 
     def get_engine(self) -> AsyncEngine:
         if self._engine is None:
-            raise SQLAlchemyError("AsyncSessionManager is not initialized")
+            raise SQLAlchemyError("AsyncEngine is not initialized")
 
         return self._engine
 
     async def close(self):
         if self._engine is None:
-            raise SQLAlchemyError("AsyncSessionManager is not initialized")
+            raise SQLAlchemyError("AsyncEngine is not initialized")
         await self._engine.dispose()
 
         self._engine = None
@@ -98,7 +98,7 @@ class AsyncSessionManager:
     @asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:
         if self._engine is None:
-            raise SQLAlchemyError("AsyncSessionManager is not initialized")
+            raise SQLAlchemyError("AsyncEngine is not initialized")
 
         async with self._engine.begin() as connection:
             try:
@@ -110,7 +110,7 @@ class AsyncSessionManager:
     @asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:
         if self._sessionmaker is None:
-            raise SQLAlchemyError("AsyncSessionManager is not initialized")
+            raise SQLAlchemyError("AsyncSessionMaker is not initialized")
 
         session = self._sessionmaker()
         try:

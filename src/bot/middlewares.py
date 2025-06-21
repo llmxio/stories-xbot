@@ -6,12 +6,12 @@ from aiogram import BaseMiddleware
 from aiogram.dispatcher.flags import get_flag
 from aiogram.types import Message, TelegramObject
 from aiogram.utils.chat_action import ChatActionSender
-from sqlalchemy.ext.asyncio import AsyncSession as Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import get_logger
 from db.redis import CachedUser
-from db.repository import UserRepository
 from db.schemas import User as UserSchema
+from services import UserService
 
 logger = get_logger(__name__)
 
@@ -27,9 +27,9 @@ class UserMiddleware(BaseMiddleware):
     4. Saves user information
     """
 
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
-        self.user_repo = UserRepository(session)
+        self.user_repo = UserService(session)
         logger.debug("Initialized UserMiddleware with session")
 
     async def __call__(
@@ -53,13 +53,13 @@ class UserMiddleware(BaseMiddleware):
             return
 
         # Try to get user from cache first
-        cached_user = CachedUser.get_from_cache(chat_id)
+        cached_user = await CachedUser.get_from_cache(chat_id)
 
         # If not in cache, try database
         if not cached_user:
             existing_user = self.user_repo.get_user_by_chat_id(chat_id)
             if existing_user:
-                cached_user = CachedUser.get_from_cache(existing_user.id)
+                cached_user = await CachedUser.get_from_cache(existing_user.id)
 
         # Check if user is blocked (using cached data if available)
         if (

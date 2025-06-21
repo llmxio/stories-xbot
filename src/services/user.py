@@ -1,34 +1,20 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
-
 from config import get_logger
-from models.models import (
-    Chat as ChatDB,
-)
-from models.models import (
-    InvalidLinkViolation,
-)
-from models.models import (
-    User as UserDB,
-)
 from db.redis import CachedUser
-from db.schemas import Chat as ChatSchema
 from db.schemas import User, UserCreate
+from models import InvalidLinkViolation, User as UserDB
+
+from .base import BaseService
 
 logger = get_logger(__name__)
 
 
-class BaseRepository:
-    def __init__(self, db: Session):
-        self.db = db
+class UserService(BaseService):
+    """Service for user-related database operations."""
 
-
-class UserRepository(BaseRepository):
-    """Repository for user-related database operations."""
-
-    def create_user(self, user: UserCreate) -> User:
+    async def create(self, user: UserCreate) -> User:
         """Create a new user in the database."""
         logger.debug("Creating user with chat_id=%d, username=%s", user.chat_id, user.username)
         db_user = UserDB(
@@ -47,20 +33,20 @@ class UserRepository(BaseRepository):
         cached_user.is_blocked = False
         cached_user.is_suspended = False
         cached_user.suspension_remaining = 0
-        cached_user.save_to_cache()
+        await cached_user.save_to_cache()
         return user_model
 
-    def get_user(self, user_id: int) -> Optional[User]:
+    async def get_user(self, user_id: int) -> Optional[User]:
         """Retrieve a user by ID from the database."""
         db_user = self.db.query(UserDB).filter(UserDB.id == user_id).first()
         if db_user:
-            return self.get_user_by_chat_id(db_user.chat_id)
+            return await self.get_user_by_chat_id(db_user.chat_id)
         return None
 
-    def get_user_by_chat_id(self, chat_id: int) -> Optional[User]:
+    async def get_user_by_chat_id(self, chat_id: int) -> Optional[User]:
         """Retrieve a user by chat ID."""
         # Try to get from cache first
-        cached_user = CachedUser.get_from_cache(chat_id)
+        cached_user = await CachedUser.get_from_cache(chat_id)
         if cached_user:
             return cached_user
 
@@ -74,7 +60,7 @@ class UserRepository(BaseRepository):
             # cached_user.is_blocked = self.is_user_blocked(chat_id)
             cached_user.is_suspended = self.is_user_temporarily_suspended(chat_id)
             cached_user.suspension_remaining = self.get_suspension_remaining(chat_id)
-            cached_user.save_to_cache()
+            await cached_user.save_to_cache()
             return user
         return None
 
@@ -133,7 +119,7 @@ class UserRepository(BaseRepository):
         now = int(datetime.now().timestamp())
         return max(0, violation.suspended_until - now)
 
-    def save_user(self, user: UserCreate) -> User:
+    async def save_user(self, user: UserCreate) -> User:
         """Save or update a user."""
         logger.debug("Saving user with chat_id=%d", user.chat_id)
         existing = self.db.query(UserDB).filter_by(chat_id=user.chat_id).first()
@@ -157,46 +143,5 @@ class UserRepository(BaseRepository):
         # cached_user.is_blocked = self.is_user_blocked(user.chat_id)
         cached_user.is_suspended = self.is_user_temporarily_suspended(user.chat_id)
         cached_user.suspension_remaining = self.get_suspension_remaining(user.chat_id)
-        cached_user.save_to_cache()
+        await cached_user.save_to_cache()
         return user_model
-
-
-class ChatRepository(BaseRepository):
-    def create_chat(self, chat: ChatSchema) -> ChatSchema:
-        db_chat = ChatDB(
-            id=chat.id,
-            type=chat.type,
-            title=chat.title,
-            username=chat.username,
-            first_name=chat.first_name,
-            last_name=chat.last_name,
-            is_forum=chat.is_forum,
-            created_at=chat.created_at,
-        )
-        self.db.add(db_chat)
-        self.db.commit()
-        self.db.refresh(db_chat)
-        return ChatSchema.model_validate(db_chat)
-
-    def try_create_chat(self, chat: ChatSchema) -> ChatSchema:
-        """Try to create or update a chat record in the database.
-
-        Args:
-            chat: The chat schema to create or update
-
-        Returns:
-            The created or updated chat schema
-        """
-        logger.debug("Attempting to upsert chat with id=%d", chat.id)
-        existing_chat = self.db.query(ChatDB).filter_by(id=chat.id).first()
-
-        if existing_chat:
-            logger.debug("Updating existing chat with id=%d", chat.id)
-            for key, value in chat.model_dump().items():
-                setattr(existing_chat, key, value)
-            self.db.commit()
-            self.db.refresh(existing_chat)
-            return ChatSchema.model_validate(existing_chat)
-
-        logger.debug("Creating new chat with id=%d", chat.id)
-        return self.create_chat(chat)

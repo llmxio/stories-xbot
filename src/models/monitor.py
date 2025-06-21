@@ -2,10 +2,10 @@ from datetime import datetime
 
 import sqlalchemy as sa
 
-from .base import Base
+from .base import BaseSqlaModel
 
 
-class Monitor(Base):
+class Monitor(BaseSqlaModel):
     __tablename__ = "monitor"
 
     id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)

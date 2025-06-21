@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from db import Base
 from models.models import Chat, ChatType, User
-from db.repository import UserRepository
+from services.repository import UserRepository
 from db.schemas import User
 
 
