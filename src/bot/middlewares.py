@@ -29,7 +29,7 @@ class UserMiddleware(BaseMiddleware):
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.user_repo = UserService(session)
+        self.user_svc = UserService(session)
         logger.debug("Initialized UserMiddleware with session")
 
     async def __call__(
@@ -49,7 +49,7 @@ class UserMiddleware(BaseMiddleware):
         if event.from_user.is_bot:
             if event.from_user.id != data["bot"].id:
                 logger.info("Blocking bot user %d", user_id)
-                self.user_repo.block_user(chat_id, True)
+                self.user_svc.block_user(chat_id, True)
             return
 
         # Try to get user from cache first
@@ -57,7 +57,8 @@ class UserMiddleware(BaseMiddleware):
 
         # If not in cache, try database
         if not cached_user:
-            existing_user = self.user_repo.get_user_by_chat_id(chat_id)
+            existing_user = self.user_svc.get_user_by_chat_id(chat_id)
+
             if existing_user:
                 cached_user = await CachedUser.get_from_cache(existing_user.id)
 
@@ -65,7 +66,7 @@ class UserMiddleware(BaseMiddleware):
         if (
             cached_user
             and cached_user.is_blocked
-            or (not cached_user and self.user_repo.is_user_blocked(chat_id))
+            or (not cached_user and self.user_svc.is_user_blocked(chat_id))
         ):
             logger.info("Blocked user %d attempted to use the bot", user_id)
             return
@@ -77,8 +78,8 @@ class UserMiddleware(BaseMiddleware):
                 is_suspended = True
                 remaining = cached_user.suspension_remaining
             else:
-                is_suspended = self.user_repo.is_user_temporarily_suspended(chat_id)
-                remaining = self.user_repo.get_suspension_remaining(chat_id) if is_suspended else 0
+                is_suspended = self.user_svc.is_user_temporarily_suspended(chat_id)
+                remaining = self.user_svc.get_suspension_remaining(chat_id) if is_suspended else 0
 
             if is_suspended:
                 minutes = (remaining + 59) // 60  # Round up to nearest minute
@@ -109,7 +110,7 @@ class UserMiddleware(BaseMiddleware):
         if should_save:
             try:
                 logger.debug("Saving user information for user %d", user_id)
-                user = self.user_repo.save_user(
+                user = self.user_svc.save_user(
                     UserSchema(
                         id=user_id,
                         first_name=event.from_user.first_name,
@@ -144,6 +145,11 @@ class LoggingMiddleware(BaseMiddleware):
     3. Message text (if available)
     """
 
+    def __init__(self, session: AsyncSession):
+        self.session = session
+        self.user_svc = UserService(session)
+        logger.debug("Initialized LoggingMiddleware with session")
+
     async def __call__(
         self,
         handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
@@ -175,6 +181,11 @@ class LongOperation(BaseMiddleware):
 
     The middleware will automatically send the specified chat action during handler execution.
     """
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+        self.user_svc = UserService(session)
+        logger.debug("Initialized LongOperationMiddleware with session")
 
     async def __call__(
         self,

@@ -6,7 +6,7 @@ from pyrogram.sync import idle
 
 from config import get_config, get_logger
 
-LOGGER = get_logger(__name__)
+log = get_logger(__name__)
 
 
 async def start_userbot() -> None:
@@ -22,7 +22,7 @@ async def start_userbot() -> None:
     )
 
     try:
-        LOGGER.info("Starting userbot authentication (interactive mode)...")
+        log.warning("Starting userbot authentication...")
         await app.start()
 
         me = await app.get_me()
@@ -32,16 +32,17 @@ async def start_userbot() -> None:
             f"Platform: {platform.system()} {platform.release()}"
         )
 
-        msg = f"✅ Userbot authenticated as: {me.first_name} (@{me.username}, id={me.id}) | Device info: {device_info}"
+        msg = f"✅ Userbot authenticated as: {me.first_name} (@{me.username}, id={me.id}) | {device_info}"
         await app.send_message("me", msg)
 
-        LOGGER.info("Self-check message sent to Saved Messages: %s", msg[:60] + "...")
+        log.debug("Self-check message sent to Saved Messages: %s...", msg[:60])
         await idle()
     except Exception as e:
-        LOGGER.exception("Error during userbot authentication or self-check: %s", e)
+        log.exception("Error during userbot authentication or self-check: %s", e)
         raise
     finally:
         await app.stop()
+        log.warning("Stopped userbot...")
 
 
 def register_handlers(app: Client) -> None:

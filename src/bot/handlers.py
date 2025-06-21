@@ -15,7 +15,7 @@ from aiogram.types import (
 )
 
 # Local application imports
-from bot.filters import IsAdmin, IsPremium
+from bot.filters import IsAdmin, IsPremium, IsUser
 from bot.middlewares import LongOperation
 from config import get_config, get_logger
 from db.schemas import Chat as ChatSchema, User as UserSchema
@@ -35,9 +35,10 @@ admin_router = Router()
 premium_router = Router()
 
 # Apply middleware to root router
-root_router.message.middleware(LongOperation())
+# root_router.message.middleware(LongOperation())
 
 # Apply filters
+root_router.message.filter(IsUser())
 admin_router.message.filter(IsAdmin())
 premium_router.message.filter(IsPremium())
 
@@ -59,7 +60,7 @@ async def command_start_handler(message: Message) -> None:
     async with get_session() as session:
         print(session)
 
-    # session = await get_session()
+    session = await get_session()
     try:
         # Create chat record at the beginning
         # chat_repo = ChatRepository(session)
@@ -89,7 +90,7 @@ async def command_start_handler(message: Message) -> None:
     except Exception as error:
         LOG.exception("Failed to save user on /start: %s", error)
     finally:
-        session.close()
+        await session.close()
 
     msg = t(locale, "start.instructions")
 

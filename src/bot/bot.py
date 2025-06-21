@@ -1,18 +1,16 @@
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from sqlalchemy.ext.asyncio import AsyncSession as Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers import get_routers
 from bot.middlewares import LoggingMiddleware, LongOperation, UserMiddleware
 from config import get_config, get_logger
 
-LOG_LEVEL = get_config().LOG_LEVEL
-
-LOG = get_logger(__name__)
+log = get_logger(__name__)
 
 
-async def start_bot(session: Session) -> None:
+async def start_bot(session: AsyncSession) -> None:
     """Start the Telegram bot."""
 
     config = get_config()
@@ -23,21 +21,22 @@ async def start_bot(session: Session) -> None:
 
     # Initialize middlewares
     dp.message.middleware(UserMiddleware(session))
-    dp.message.middleware(LoggingMiddleware())
-    dp.message.middleware(LongOperation())
+    dp.message.middleware(LoggingMiddleware(session))
+    dp.message.middleware(LongOperation(session))
 
     # Register handlers
     register_handlers(dp)
 
     try:
-        LOG.debug("Starting bot...")
+        log.warning("Starting bot...")
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)  # type: ignore
     except Exception as e:
-        LOG.exception("Error in bot: %s", e)
+        log.exception("Error in bot: %s", e)
         raise
     finally:
         await bot.session.close()
+        log.warning("Stopped bot...")
 
 
 def register_handlers(dp: Dispatcher) -> None:
@@ -45,4 +44,4 @@ def register_handlers(dp: Dispatcher) -> None:
     routers = get_routers()
     for router in routers:
         dp.include_router(router)
-    LOG.info("Registered %d routers", len(routers))
+    log.info("Registered %d routers", len(routers))
