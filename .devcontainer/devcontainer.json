@@ -12,7 +12,7 @@
   },
   "runArgs": [
     "--name=${localWorkspaceFolderBasename}",
-    "--hostname=${localWorkspaceFolderBasename}",
+    "--hostname=rsdev",
     // "--device=/dev/infiniband",
     // "--device=/dev/net",
     // "--device=/dev/vfio",
@@ -47,7 +47,15 @@
         "maattdd.gitless",
         "humao.rest-client",
         "swindh.enumerator",
-        "timonwong.shellcheck"
+        "timonwong.shellcheck",
+        "dbcode.dbcode",
+        "ms-python.pylint",
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "Redis.redis-for-vscode",
+        "ms-python.mypy-type-checker",
+        "anysphere.cursorpyright",
+        "me-dutour-mathieu.vscode-github-actions"
       ]
     }
   },

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-ssh-add ~/Sync/ssh-keys/*
-ssh-add ~/Documents/_int/ssh-keys/*
+ssh-add "$(find ~/Sync/ssh/ -type f ! -name '*.pub')"
+ssh-add "$(find ~/Documents/_int/ssh-keys/ -type f ! -name '*.pub')"
 
 exit 0
