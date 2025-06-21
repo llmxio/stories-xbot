@@ -7,12 +7,12 @@ from config import get_logger
 from db.session import session_manager
 from userbot import start_userbot
 
-LOG = get_logger(__name__)
+log = get_logger(__name__)
 
 
 async def main():
     try:
-        LOG.warning("Starting main loop")
+        log.warning("Starting main loop")
 
         async with session_manager.session() as session:
             await asyncio.gather(
@@ -21,7 +21,7 @@ async def main():
             )
 
     except Exception as e:
-        LOG.exception("Error in main loop: %s", e)
+        log.exception("Error in main loop: %s", e)
         raise
 
 
@@ -32,4 +32,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     finally:
-        LOG.warning("Main loop stopped")
+        log.warning("Main loop stopped")

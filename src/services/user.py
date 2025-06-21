@@ -5,46 +5,48 @@ from sqlalchemy import select
 
 from config import get_logger
 from db.redis import UserCache
-from db.schemas import BaseModel, User, UserCreate
+from db.schemas import User, UserCreate
 from models import InvalidLinkViolation, User as UserDB
 
 from .base import BaseService
 
-logger = get_logger(__name__)
+log = get_logger(__name__)
 
 
 class UserService(BaseService[UserDB]):
     """Service for user-related database operations."""
 
-    async def create(self, user: BaseModel) -> UserDB:
+    async def create(self, user: UserCreate) -> UserDB:
         """Create a new user in the database."""
         if not isinstance(user, UserCreate):
             raise ValueError("Expected UserCreate instance")
 
-        logger.debug("Creating user with chat_id=%d, username=%s", user.chat_id, user.username)
+        log.debug("Creating user with chat_id=%d, username=%s", user.chat_id, user.username)
 
-        db_user1 = await super().create(user)
-
-        logger.debug("User created with id=%d", db_user1.id)
-
-        db_user = UserDB(
-            chat_id=user.chat_id,
-            username=user.username,
-            is_bot=user.is_bot,
-            is_premium=user.is_premium,
+        user_db = UserDB.model_validate(
+            user.model_dump(
+                exclude_unset=True,
+                exclude_none=True,
+                exclude_defaults=True,
+            )
         )
-        self.session.add(db_user)
-        await self.session.commit()
-        await self.session.refresh(db_user)
-        logger.info("User created with id=%d", db_user.id)
-        user_model = User.model_validate(db_user)
+
+        if user_db.id != 0:
+            log.debug("User created with id=%d", user_db.id)
+        else:
+            self.session.add(user_db)
+            await self.session.commit()
+            await self.session.refresh(user_db)
+            log.debug("User refreshed with id=%d", user_db.id)
+
+        user_model = User.model_validate(user_db)
         # Cache the new user with status
-        cached_user = UserCache.model_validate(user_model)
-        cached_user.is_blocked = False
+        user_cache = UserCache.model_validate(user_model)
+        user_cache.is_blocked = False
         # Note: is_suspended and suspension_remaining are not part of UserCache model
         # They should be handled separately or added to the model
-        await cached_user.save_to_cache()
-        return db_user
+        await user_cache.save_to_cache()
+        return user_db
 
     async def get_user(self, user_id: int) -> Optional[User]:
         """Retrieve a user by ID from the database."""
@@ -61,7 +63,7 @@ class UserService(BaseService[UserDB]):
             return cached_user
 
         # If not in cache, get from database
-        logger.debug("Cache miss, fetching user by chat_id=%d from database", chat_id)
+        log.debug("Cache miss, fetching user by chat_id=%d from database", chat_id)
         result = await self.session.execute(select(UserDB).filter_by(chat_id=chat_id))
         db_user = result.scalar_one_or_none()
         if db_user:
@@ -91,7 +93,7 @@ class UserService(BaseService[UserDB]):
 
     def block_user(self, chat_id: int, is_blocked: bool):
         """Block a user by their Telegram ID."""
-        logger.warning(
+        log.warning(
             "Feature under development: block_user called with chat_id=%s and is_blocked=%s",
             chat_id,
             is_blocked,
@@ -123,7 +125,7 @@ class UserService(BaseService[UserDB]):
 
     async def is_user_temporarily_suspended(self, chat_id: int) -> bool:
         """Check if a user is temporarily suspended."""
-        logger.debug("Checking if user is temporarily suspended with chat_id=%d", chat_id)
+        log.debug("Checking if user is temporarily suspended with chat_id=%d", chat_id)
         result = await self.session.execute(select(InvalidLinkViolation).filter_by(chat_id=chat_id))
         violation = result.scalar_one_or_none()
         if not violation:
@@ -133,7 +135,7 @@ class UserService(BaseService[UserDB]):
 
     async def get_suspension_remaining(self, chat_id: int) -> int:
         """Get remaining suspension time in seconds."""
-        logger.debug("Getting suspension remaining for chat_id=%d", chat_id)
+        log.debug("Getting suspension remaining for chat_id=%d", chat_id)
         result = await self.session.execute(select(InvalidLinkViolation).filter_by(chat_id=chat_id))
         violation = result.scalar_one_or_none()
         if not violation:
@@ -144,7 +146,8 @@ class UserService(BaseService[UserDB]):
 
     async def save_user(self, user: UserCreate) -> User:
         """Save or update a user."""
-        logger.debug("Saving user with chat_id=%d", user.chat_id)
+        log.debug("Saving user with chat_id=%d", user.chat_id)
+
         result = await self.session.execute(select(UserDB).filter_by(chat_id=user.chat_id))
         existing = result.scalar_one_or_none()
 
@@ -152,14 +155,14 @@ class UserService(BaseService[UserDB]):
             for key, value in user.model_dump().items():
                 setattr(existing, key, value)
             await self.session.commit()
-            logger.debug("Updated existing user with chat_id=%d", user.chat_id)
+            log.debug("Updated existing user with chat_id=%d", user.chat_id)
             user_model = User.model_validate(existing)
         else:
             db_user = UserDB(**user.model_dump())
             self.session.add(db_user)
             await self.session.commit()
             await self.session.refresh(db_user)
-            logger.debug("Created new user with chat_id=%d", user.chat_id)
+            log.debug("Created new user with chat_id=%d", user.chat_id)
             user_model = User.model_validate(db_user)
 
         # Update cache with status

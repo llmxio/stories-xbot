@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import get_logger
 from db.redis import CachedUser
 from db.schemas import User as UserSchema
-from models import BaseSqlaModel, Chat, Story, UserDB  # type: ignore
+from models import BaseDbModel, Chat, Story, UserDB  # type: ignore
 
 logger = get_logger(__name__)
 

@@ -13,7 +13,7 @@ from db.redis import UserCache
 from db.schemas import UserCreate
 from services import UserService
 
-logger = get_logger(__name__)
+log = get_logger(__name__)
 
 
 class UserMiddleware(BaseMiddleware):
@@ -30,7 +30,7 @@ class UserMiddleware(BaseMiddleware):
     def __init__(self, session: AsyncSession):
         self.session = session
         self.user_service = UserService(session)
-        logger.debug("Initialized UserMiddleware with session")
+        log.debug("Initialized UserMiddleware with session %s", session)
 
     async def __call__(
         self,
@@ -43,12 +43,12 @@ class UserMiddleware(BaseMiddleware):
 
         chat_id = event.chat.id
         user_id = event.from_user.id
-        logger.debug("Processing message from user %d in chat %d", user_id, chat_id)
+        log.debug("Processing message from user %d in chat %d", user_id, chat_id)
 
         # Block bot users
         if event.from_user.is_bot:
             if event.from_user.id != data["bot"].id:
-                logger.info("Blocking bot user %d", user_id)
+                log.info("Blocking bot user %d", user_id)
                 self.user_service.block_user(chat_id, True)
             return
 
@@ -64,7 +64,7 @@ class UserMiddleware(BaseMiddleware):
 
         # Check if user is blocked (using cached data if available)
         if cached_user and cached_user.is_blocked:
-            logger.info("Blocked user %d attempted to use the bot", user_id)
+            log.info("Blocked user %d attempted to use the bot", user_id)
             return
 
         # Check if user is temporarily suspended (only for non-bot users)
@@ -73,7 +73,7 @@ class UserMiddleware(BaseMiddleware):
             if is_suspended:
                 remaining = await self.user_service.get_suspension_remaining(chat_id)
                 minutes = (remaining + 59) // 60  # Round up to nearest minute
-                logger.info(
+                log.info(
                     "Suspended user %d attempted to use the bot, %d minutes remaining",
                     user_id,
                     minutes,
@@ -83,7 +83,7 @@ class UserMiddleware(BaseMiddleware):
                         f"🚫 You are temporarily suspended for {minutes} minute{'s' if minutes != 1 else ''}."
                     )
                 except Exception as e:
-                    logger.exception("Failed to answer suspended user %d: %s", user_id, e)
+                    log.exception("Failed to answer suspended user %d: %s", user_id, e)
                 return
 
         # Determine if we need to save user information
@@ -94,32 +94,52 @@ class UserMiddleware(BaseMiddleware):
             # Check if any user attributes have changed
             current_premium = event.from_user.is_premium or False
             current_username = event.from_user.username or ""
+            current_last_name = event.from_user.last_name or ""
+            current_language_code = event.from_user.language_code or ""
+            current_added_to_attachment_menu = event.from_user.added_to_attachment_menu or False
+            current_can_join_groups = event.from_user.can_join_groups or True
+            current_can_read_all_group_messages = event.from_user.can_read_all_group_messages or False
+            current_supports_inline_queries = event.from_user.supports_inline_queries or False
+            current_can_connect_to_business = event.from_user.can_connect_to_business or False
 
             if (
                 cached_user.is_premium != current_premium
                 or cached_user.username != current_username
                 or cached_user.first_name != event.from_user.first_name
+                or cached_user.last_name != current_last_name
+                or cached_user.language_code != current_language_code
+                or cached_user.added_to_attachment_menu != current_added_to_attachment_menu
+                or cached_user.can_join_groups != current_can_join_groups
+                or cached_user.can_read_all_group_messages != current_can_read_all_group_messages
+                or cached_user.supports_inline_queries != current_supports_inline_queries
+                or cached_user.can_connect_to_business != current_can_connect_to_business
             ):
                 should_save = True
 
         # Save user information if needed
         if should_save:
             try:
-                logger.debug("Saving user information for user %d", user_id)
+                log.debug("Saving user information for user %d", user_id)
                 user = await self.user_service.save_user(
                     UserCreate(
-                        id=user_id,
                         chat_id=chat_id,
                         username=event.from_user.username or "",
                         first_name=event.from_user.first_name,
+                        last_name=event.from_user.last_name,
+                        language_code=event.from_user.language_code,
                         is_bot=event.from_user.is_bot,
                         is_premium=event.from_user.is_premium or False,
+                        added_to_attachment_menu=event.from_user.added_to_attachment_menu or False,
+                        can_join_groups=event.from_user.can_join_groups or True,
+                        can_read_all_group_messages=event.from_user.can_read_all_group_messages or False,
+                        supports_inline_queries=event.from_user.supports_inline_queries or False,
+                        can_connect_to_business=event.from_user.can_connect_to_business or False,
                     )
                 )
                 # Update cache with new user data
                 cached_user = UserCache.model_validate(user.model_dump())
             except Exception as e:
-                logger.exception("Failed to save user %d: %s", user_id, e)
+                log.exception("Failed to save user %d: %s", user_id, e)
                 # If save fails but we have cached user, continue with that
                 if not cached_user:
                     # If we have no cached data and save failed, we can't proceed
@@ -143,7 +163,7 @@ class LoggingMiddleware(BaseMiddleware):
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        logger.debug("Initialized LoggingMiddleware with session")
+        log.debug("Initialized LoggingMiddleware with session %s", session)
 
     async def __call__(
         self,
@@ -154,7 +174,7 @@ class LoggingMiddleware(BaseMiddleware):
         if isinstance(event, Message):
             text = event.text if hasattr(event, "text") else ""
             user_id = event.from_user.id if event.from_user else None
-            logger.debug(
+            log.debug(
                 "Processing update from user %s",
                 user_id or "unknown",
                 extra={
@@ -179,7 +199,7 @@ class LongOperation(BaseMiddleware):
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        logger.debug("Initialized LongOperationMiddleware with session")
+        log.debug("Initialized LongOperationMiddleware with session %s", session)
 
     async def __call__(
         self,
@@ -197,7 +217,7 @@ class LongOperation(BaseMiddleware):
         if not isinstance(event, Message):
             return await handler(event, data)
 
-        logger.debug(
+        log.debug(
             "Starting long operation '%s' for chat %d",
             long_operation_type,
             event.chat.id,
@@ -209,14 +229,14 @@ class LongOperation(BaseMiddleware):
                 bot=data["bot"],
             ):
                 result = await handler(event, data)
-                logger.debug(
+                log.debug(
                     "Completed long operation '%s' for chat %d",
                     long_operation_type,
                     event.chat.id,
                 )
                 return result
         except Exception as e:
-            logger.exception(
+            log.exception(
                 "Error during long operation '%s' for chat %d: %s",
                 long_operation_type,
                 event.chat.id,

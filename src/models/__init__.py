@@ -1,4 +1,4 @@
-from .base import BaseSqlaModel
+from .base import BaseDbModel
 from .bug_report import BugReport
 from .chat import Chat, ChatType
 from .download_queue import DownloadQueue
@@ -9,7 +9,7 @@ from .task import Task
 from .user import User
 
 __all__ = [
-    "BaseSqlaModel",
+    "BaseDbModel",
     "BugReport",
     "Chat",
     "ChatType",

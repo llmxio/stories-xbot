@@ -2,9 +2,14 @@
 Simple test to verify bot components are properly imported and structured.
 """
 
+import asyncio
+
+import pytest
+
 from bot.filters import ChatType, HasUsernames
 from bot.handlers import get_routers
 from bot.middlewares import LongOperation
+from db.session import get_session
 
 
 def test_filters():
@@ -23,11 +28,12 @@ def test_filters():
     print("✓ Filters test passed")
 
 
-def test_middlewares():
+async def test_middlewares():
     """Test middleware instantiation."""
-    middleware = LongOperation()
-    assert middleware is not None
-    print("✓ Middlewares test passed")
+    async with get_session() as session:
+        middleware = LongOperation(session)
+        assert middleware is not None
+        print("✓ Middlewares test passed")
 
 
 def test_handlers():
@@ -40,6 +46,6 @@ def test_handlers():
 
 if __name__ == "__main__":
     test_filters()
-    test_middlewares()
+    asyncio.run(test_middlewares())
     test_handlers()
     print("🎉 All tests passed!")

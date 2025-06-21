@@ -1,5 +1,5 @@
 [project]
-name = "telestories"
+name = "stories-xbot"
 version = "0.1.0"
 description = "Telegram bot and userbot implementation using PyrogramMod and aiogram"
 readme = "README.md"
@@ -35,10 +35,10 @@ asyncio_mode = "auto"
 [tool.mypy]
 ignore_missing_imports = true
 namespace_packages = true
-mypy_path = "./src"
+mypy_path = "src"
 
 [tool.ruff]
-line-length = 120
+line-length = 110
 target-version = "py313"
 
 [tool.ruff.lint]

@@ -2,17 +2,16 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from db import Base
-from models.models import Chat, ChatType, User
-from services.repository import UserRepository
-from db.schemas import User
+from db.schemas import UserCreate
+from models import BaseDbModel, Chat, ChatType, User as UserDB
+from services import UserService as UserService
 
 
 @pytest.fixture(name="db_session", scope="function")
 async def db_session_fixture():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(BaseDbModel.metadata.create_all)
 
     session_maker = async_sessionmaker(bind=engine)
     session = session_maker()
@@ -20,7 +19,7 @@ async def db_session_fixture():
     yield session
     await session.close()
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(BaseDbModel.metadata.drop_all)
     await engine.dispose()
 
 
@@ -68,9 +67,9 @@ async def test_user_repository_async_operations(db_session: AsyncSession):
     await db_session.commit()
 
     # Create a user using the repository
-    repo = UserRepository(db_session)
-    user_data = User(chat_id=99999, is_bot=False, is_premium=True, first_name="Test")
-    user = await repo.create(user_data)
+    user_service = UserService(db_session)
+    user_data = UserCreate(chat_id=99999, is_bot=False, is_premium=True, username="test", first_name="Test")
+    user = await user_service.create(user_data)
 
     # Verify user was created correctly
     assert user.chat_id == 99999
@@ -79,12 +78,12 @@ async def test_user_repository_async_operations(db_session: AsyncSession):
     assert user.id is not None
 
     # Test getting the user by ID
-    fetched_user = await repo.get(user.id)
+    fetched_user = await user_service.get(user.id)
     assert fetched_user is not None
     assert fetched_user.chat_id == 99999
     assert fetched_user.is_premium
 
     # Test listing users
-    users = await repo.list()
+    users = await user_service.list()
     assert len(users) == 1
     assert users[0].chat_id == 99999

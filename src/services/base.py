@@ -1,15 +1,15 @@
-from typing import Generic, Optional, Type, TypeVar, get_args
+from typing import Any, Generic, Optional, Type, TypeVar, get_args
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import get_logger
 from db.schemas import BaseModel
-from models import BaseSqlaModel
+from models import BaseDbModel
 
-T = TypeVar("T", bound=BaseSqlaModel)
+T = TypeVar("T", bound=BaseDbModel)
 
-logger = get_logger(__name__)
+log = get_logger(__name__)
 
 
 class BaseService(Generic[T]):
@@ -27,7 +27,7 @@ class BaseService(Generic[T]):
             if orig_bases:
                 model = get_args(orig_bases[0])[0]
 
-        logger.debug("Initializing BaseService with model=%s", model)
+        log.debug("Initializing BaseService with model=%s", model)
 
         if model:
             self.model = model
@@ -43,10 +43,33 @@ class BaseService(Generic[T]):
         result = await self.session.execute(select(self.model))
         return list(result.scalars().all())
 
-    async def create(self, schema: BaseModel) -> T:
-        """Create a new user."""
-        db_obj = self.model(**schema.model_dump())
-        self.session.add(db_obj)
-        await self.session.commit()
-        await self.session.refresh(db_obj)
-        return db_obj
+    # async def create(self, obj_model: BaseModel, **kwargs: Any) -> T:
+    #     """Create a new user."""
+    #     if not isinstance(obj_model, UserCreate):
+    #         raise ValueError("Expected UserCreate instance")
+
+    #     log.debug("Creating obj with chat_id=%d, objname=%s", obj.chat_id, obj.objname)
+
+    #     obj_db = await super().create(
+    #         obj,
+    #         exclude_unset=True,
+    #         exclude_none=True,
+    #         exclude_defaults=True,
+    #     )
+
+    #     if user_db.id != 0:
+    #         log.debug("User created with id=%d", user_db.id)
+    #     else:
+    #         self.session.add(user_db)
+    #         await self.session.commit()
+    #         await self.session.refresh(user_db)
+    #         log.debug("User refreshed with id=%d", user_db.id)
+
+    #     user_model = User.model_validate(user_db)
+    #     # Cache the new user with status
+    #     user_cache = UserCache.model_validate(user_model)
+    #     user_cache.is_blocked = False
+    #     # Note: is_suspended and suspension_remaining are not part of UserCache model
+    #     # They should be handled separately or added to the model
+    #     await user_cache.save_to_cache()
+    #     return user_db

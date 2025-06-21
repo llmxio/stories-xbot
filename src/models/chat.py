@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import BaseSqlaModel
+from .base import BaseDbModel
 
 
 class ChatType(str, enum.Enum):
@@ -14,7 +14,7 @@ class ChatType(str, enum.Enum):
     CHANNEL = "channel"
 
 
-class Chat(BaseSqlaModel):
+class Chat(BaseDbModel):
     __tablename__ = "chat"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False, index=True)

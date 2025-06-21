@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 # pylint: disable=no-name-in-module,import-error
 from alembic import context
 from config import get_config
-from models import BaseSqlaModel
+from models import BaseDbModel
 
 # add src to sys.path
 # sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "../src")))
@@ -25,7 +25,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
-target_metadata = BaseSqlaModel.metadata
+target_metadata = BaseDbModel.metadata
 
 
 def get_url():

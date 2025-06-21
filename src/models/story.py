@@ -2,10 +2,10 @@ from datetime import datetime
 
 import sqlalchemy as sa
 
-from .base import BaseSqlaModel
+from .base import BaseDbModel
 
 
-class Story(BaseSqlaModel):
+class Story(BaseDbModel):
     __tablename__ = "story"
 
     id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)

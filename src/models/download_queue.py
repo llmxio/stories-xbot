@@ -2,10 +2,10 @@ from datetime import datetime
 
 import sqlalchemy as sa
 
-from .base import BaseSqlaModel
+from .base import BaseDbModel
 
 
-class DownloadQueue(BaseSqlaModel):
+class DownloadQueue(BaseDbModel):
     __tablename__ = "download_queue"
     id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
     chat_id = sa.Column(sa.BigInteger, sa.ForeignKey("chat.id"), nullable=False)
