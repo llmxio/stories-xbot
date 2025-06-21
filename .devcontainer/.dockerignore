@@ -1,0 +1,79 @@
+# Git
+.git
+.gitignore
+README.md
+.gitattributes
+.gitmodules
+
+# CI
+.github
+.gitlab-ci.yml
+.travis.yml
+.circleci
+.drone.yml
+
+# Docker
+Dockerfile*
+.dockerignore
+.devcontainer
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+.directory
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+node_modules
+bower_components
+
+# Build outputs
+dist
+build
+target
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.egg-info
+.eggs
+.pytest_cache
+.coverage
+.mypy_cache
+.tox
+venv
+env
+.env
+
+# Rust
+target/
+Cargo.lock
+
+# Go
+vendor/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup

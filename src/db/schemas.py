@@ -21,16 +21,35 @@ class Story(AiogramStory):
     model_config = ConfigDict(from_attributes=True, frozen=False)
 
 
+# NOTE: Use UserBase/UserCreate/User as reference for all other models
 class UserBase(AiogramUser):
     model_config = ConfigDict(from_attributes=True, frozen=False)
+
+    # Required fields
+    # id: int = Field(..., description="User's unique identifier")
+    # is_bot: bool = Field(..., description="True, if this user is a bot")
+    # first_name: str = Field(..., description="User's or bot's first name")
+
+    # Optional fields
+    # last_name: Optional[str] = Field(default=None, description="User's or bot's last name")
+    # username: Optional[str] = Field(default=None, description="User's or bot's username")
+    # language_code: Optional[str] = Field(default=None, description="IETF language tag of the user's language")
+    # is_premium: Optional[bool] = Field(default=None, description="True, if a Telegram Premium user")
+    # added_to_attachment_menu: Optional[bool] = Field(default=None, description="True, if added to the attachments")
+    # can_join_groups: Optional[bool] = Field(default=None, description="True, if  can be invited to groups")
+    # can_read_all_group_messages: Optional[bool] = Field(default=None, description="True, if privacy mode is disabled")
+    # supports_inline_queries: Optional[bool] = Field(default=None, description="True, if supports inline queries")
+    # can_connect_to_business: Optional[bool] = Field(default=None, description="True, if Telegrma Business ready")
 
 
 class UserCreate(UserBase):
     chat_id: int = Field(..., description="Chat ID")
+    created_at: datetime = Field(default_factory=datetime.now, description="Created at")
 
 
 class User(UserBase):
     id: int = Field(..., description="User ID")
+
     is_blocked: bool = Field(default=False, description="Is blocked")
     blocked_at: Optional[datetime] = Field(default_factory=datetime.now, description="Blocked at")
 

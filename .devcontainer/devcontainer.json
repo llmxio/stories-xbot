@@ -1,0 +1,65 @@
+{
+  "name": "${localWorkspaceFolderBasename}",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "options": [],
+    "args": {
+      "BASE_IMAGE_NAME": "docker.io/fedora",
+      "BASE_IMAGE_TAG": "42",
+      "USER_NAME": "rs"
+    }
+  },
+  "runArgs": [
+    "--name=${localWorkspaceFolderBasename}",
+    "--hostname=${localWorkspaceFolderBasename}",
+    // "--device=/dev/infiniband",
+    // "--device=/dev/net",
+    // "--device=/dev/vfio",
+    "--userns=keep-id",
+    "--group-add=keep-groups",
+    "--cap-add=SYS_ADMIN",
+    "--cap-add=SYS_NICE",
+    "--cap-add=SYS_PTRACE",
+    "--cap-add=SYS_RAWIO",
+    "--cap-add=IPC_LOCK",
+    "--cap-add=CAP_NET_RAW",
+    "--cap-add=CAP_NET_ADMIN",
+    "--cap-add=CAP_PERFMON",
+    "--security-opt=label=disable",
+    "--security-opt=seccomp=unconfined",
+    "--annotation=run.oci.keep_original_groups=1"
+  ],
+  "containerEnv": {
+    "LANG": "en_US.UTF-8",
+    "TZ": "Asia/Dubai"
+  },
+  "remoteEnv": {},
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "ms-vscode.cpptools@prerelease",
+        "vadimcn.vscode-lldb",
+        "matepek.vscode-catch2-test-adapter",
+        "zxh404.vscode-proto3",
+        "twxs.cmake",
+        "maattdd.gitless",
+        "humao.rest-client",
+        "swindh.enumerator",
+        "timonwong.shellcheck"
+      ]
+    }
+  },
+  "remoteUser": "rs",
+  "containerUser": "rs",
+  "mounts": [
+    "source=/run/user/1000/podman/podman.sock,target=/run/user/1000/podman/podman.sock,type=bind",
+    "source=/dev/hugepages,target=/dev/hugepages,type=bind",
+    "source=dev-ccache,target=/home/rs/.cache/ccache,type=volume"
+  ],
+  "initializeCommand": "${localWorkspaceFolder}/.devcontainer/initialize.sh",
+  "updateContentCommand": "${containerWorkspaceFolder}/.devcontainer/update_content.sh",
+  "postCreateCommand": "${containerWorkspaceFolder}/.devcontainer/post_create.sh",
+  "postAttachCommand": "${containerWorkspaceFolder}/.devcontainer/post_attach.sh"
+}

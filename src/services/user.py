@@ -4,7 +4,7 @@ from typing import List, Optional
 from config import get_logger
 from db.redis import CachedUser
 from db.schemas import User, UserCreate
-from models import InvalidLinkViolation, User as UserDB
+from models import InvalidLinkViolation, UserDB as UserDB
 
 from .base import BaseService
 
@@ -76,6 +76,14 @@ class UserService(BaseService):
 
     def list_all_users(self):
         return self.db.query(User).all()
+
+    def block_user(self, chat_id: int, is_blocked: bool):
+        """Block a user by their Telegram ID."""
+        logger.warning(
+            "Feature under development: block_user called with chat_id=%s and is_blocked=%s",
+            chat_id,
+            is_blocked,
+        )
 
     # def block_user(self, chat_id: int, is_bot: bool = False) -> BlockedUser:
     #     """Block a user by their Telegram ID."""
