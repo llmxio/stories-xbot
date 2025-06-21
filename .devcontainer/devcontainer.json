@@ -41,20 +41,20 @@
       "extensions": [
         "twxs.cmake",
         "humao.rest-client",
+        "maattdd.gitless",
         "swindh.enumerator",
         "zxh404.vscode-proto3",
         "timonwong.shellcheck",
         "dbcode.dbcode",
         "ms-python.pylint",
         "ms-python.python",
+        "ms-python.mypy-type-checker",
         "charliermarsh.ruff",
         "Redis.redis-for-vscode",
-        "ms-python.mypy-type-checker",
-        "anysphere.cursorpyright",
-        "maattdd.gitless",
         "me-dutour-mathieu.vscode-github-actions",
         "VisualStudioExptTeam.vscodeintellicode",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "anysphere.cursorpyright"
       ]
     }
   },
