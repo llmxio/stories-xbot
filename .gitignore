@@ -24,6 +24,7 @@ wheels/
 .installed.cfg
 *.egg
 alembic*.ini*
+.mypy_cache/
 
 # IDE
 .idea/
