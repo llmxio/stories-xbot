@@ -9,8 +9,8 @@ from aiogram.utils.chat_action import ChatActionSender
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import get_logger
-from db.redis import CachedUser
-from db.schemas import User as UserSchema
+from db.redis import UserCache
+from db.schemas import UserCreate
 from services import UserService
 
 logger = get_logger(__name__)
@@ -53,31 +53,25 @@ class UserMiddleware(BaseMiddleware):
             return
 
         # Try to get user from cache first
-        cached_user = await CachedUser.get_from_cache(chat_id)
+        cached_user = await UserCache.get_from_cache(chat_id)
 
         # If not in cache, try database
         if not cached_user:
-            existing_user = self.user_service.get_user_by_chat_id(chat_id)
-
+            existing_user = await self.user_service.get_user_by_chat_id(chat_id)
             if existing_user:
-                cached_user = await CachedUser.get_from_cache(existing_user.id)
+                # Convert User to UserCache for consistency
+                cached_user = UserCache.model_validate(existing_user.model_dump())
 
         # Check if user is blocked (using cached data if available)
-        if cached_user and cached_user.is_blocked or (not cached_user and self.user_service.is_user_blocked(chat_id)):
+        if cached_user and cached_user.is_blocked:
             logger.info("Blocked user %d attempted to use the bot", user_id)
             return
 
-        # Check if user is temporarily suspended (using cached data if available)
-        is_suspended = False
+        # Check if user is temporarily suspended (only for non-bot users)
         if event.from_user.id != data["bot"].id:
-            if cached_user and cached_user.is_suspended:
-                is_suspended = True
-                remaining = cached_user.suspension_remaining
-            else:
-                is_suspended = self.user_service.is_user_temporarily_suspended(chat_id)
-                remaining = self.user_service.get_suspension_remaining(chat_id) if is_suspended else 0
-
+            is_suspended = await self.user_service.is_user_temporarily_suspended(chat_id)
             if is_suspended:
+                remaining = await self.user_service.get_suspension_remaining(chat_id)
                 minutes = (remaining + 59) // 60  # Round up to nearest minute
                 logger.info(
                     "Suspended user %d attempted to use the bot, %d minutes remaining",
@@ -92,32 +86,38 @@ class UserMiddleware(BaseMiddleware):
                     logger.exception("Failed to answer suspended user %d: %s", user_id, e)
                 return
 
-        # Only save user information if it has changed or user doesn't exist
+        # Determine if we need to save user information
         should_save = False
         if not cached_user:
             should_save = True
         else:
             # Check if any user attributes have changed
-            if cached_user.is_premium != (event.from_user.is_premium or False) or cached_user.username != (
-                event.from_user.username or ""
+            current_premium = event.from_user.is_premium or False
+            current_username = event.from_user.username or ""
+
+            if (
+                cached_user.is_premium != current_premium
+                or cached_user.username != current_username
+                or cached_user.first_name != event.from_user.first_name
             ):
                 should_save = True
 
+        # Save user information if needed
         if should_save:
             try:
                 logger.debug("Saving user information for user %d", user_id)
-                user = self.user_service.save_user(
-                    UserSchema(
+                user = await self.user_service.save_user(
+                    UserCreate(
                         id=user_id,
+                        chat_id=chat_id,
+                        username=event.from_user.username or "",
                         first_name=event.from_user.first_name,
                         is_bot=event.from_user.is_bot,
                         is_premium=event.from_user.is_premium or False,
-                        chat_id=chat_id,
-                        username=event.from_user.username or "",
                     )
                 )
                 # Update cache with new user data
-                cached_user = user
+                cached_user = UserCache.model_validate(user.model_dump())
             except Exception as e:
                 logger.exception("Failed to save user %d: %s", user_id, e)
                 # If save fails but we have cached user, continue with that
@@ -143,7 +143,6 @@ class LoggingMiddleware(BaseMiddleware):
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.user_svc = UserService(session)
         logger.debug("Initialized LoggingMiddleware with session")
 
     async def __call__(
@@ -180,12 +179,11 @@ class LongOperation(BaseMiddleware):
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.user_svc = UserService(session)
         logger.debug("Initialized LongOperationMiddleware with session")
 
     async def __call__(
         self,
-        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
@@ -196,6 +194,9 @@ class LongOperation(BaseMiddleware):
             return await handler(event, data)
 
         # If flag exists, send chat action
+        if not isinstance(event, Message):
+            return await handler(event, data)
+
         logger.debug(
             "Starting long operation '%s' for chat %d",
             long_operation_type,

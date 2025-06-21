@@ -1,44 +1,54 @@
 from datetime import datetime
 from typing import List, Optional
 
+from sqlalchemy import select
+
 from config import get_logger
-from db.redis import CachedUser
-from db.schemas import User, UserCreate
-from models import InvalidLinkViolation, UserDB as UserDB
+from db.redis import UserCache
+from db.schemas import BaseModel, User, UserCreate
+from models import InvalidLinkViolation, User as UserDB
 
 from .base import BaseService
 
 logger = get_logger(__name__)
 
 
-class UserService(BaseService):
+class UserService(BaseService[UserDB]):
     """Service for user-related database operations."""
 
-    async def create(self, user: UserCreate) -> User:
+    async def create(self, user: BaseModel) -> UserDB:
         """Create a new user in the database."""
+        if not isinstance(user, UserCreate):
+            raise ValueError("Expected UserCreate instance")
+
         logger.debug("Creating user with chat_id=%d, username=%s", user.chat_id, user.username)
+
+        db_user1 = await super().create(user)
+
+        logger.debug("User created with id=%d", db_user1.id)
+
         db_user = UserDB(
             chat_id=user.chat_id,
             username=user.username,
             is_bot=user.is_bot,
             is_premium=user.is_premium,
         )
-        self.db.add(db_user)
-        self.db.commit()
-        self.db.refresh(db_user)
+        self.session.add(db_user)
+        await self.session.commit()
+        await self.session.refresh(db_user)
         logger.info("User created with id=%d", db_user.id)
         user_model = User.model_validate(db_user)
         # Cache the new user with status
-        cached_user = CachedUser.model_validate(user_model)
+        cached_user = UserCache.model_validate(user_model)
         cached_user.is_blocked = False
-        cached_user.is_suspended = False
-        cached_user.suspension_remaining = 0
+        # Note: is_suspended and suspension_remaining are not part of UserCache model
+        # They should be handled separately or added to the model
         await cached_user.save_to_cache()
-        return user_model
+        return db_user
 
     async def get_user(self, user_id: int) -> Optional[User]:
         """Retrieve a user by ID from the database."""
-        db_user = self.db.query(UserDB).filter(UserDB.id == user_id).first()
+        db_user = await self.session.get(UserDB, user_id)
         if db_user:
             return await self.get_user_by_chat_id(db_user.chat_id)
         return None
@@ -46,36 +56,38 @@ class UserService(BaseService):
     async def get_user_by_chat_id(self, chat_id: int) -> Optional[User]:
         """Retrieve a user by chat ID."""
         # Try to get from cache first
-        cached_user = await CachedUser.get_from_cache(chat_id)
+        cached_user = await UserCache.get_from_cache(chat_id)
         if cached_user:
             return cached_user
 
         # If not in cache, get from database
         logger.debug("Cache miss, fetching user by chat_id=%d from database", chat_id)
-        db_user = self.db.query(UserDB).filter_by(chat_id=chat_id).first()
+        result = await self.session.execute(select(UserDB).filter_by(chat_id=chat_id))
+        db_user = result.scalar_one_or_none()
         if db_user:
             user = User.model_validate(db_user)
             # Cache the user with status
-            cached_user = CachedUser.model_validate(user)
-            # cached_user.is_blocked = self.is_user_blocked(chat_id)
-            cached_user.is_suspended = self.is_user_temporarily_suspended(chat_id)
-            cached_user.suspension_remaining = self.get_suspension_remaining(chat_id)
+            cached_user = UserCache.model_validate(user)
+            # Note: is_suspended and suspension_remaining are not part of UserCache model
+            # They should be handled separately or added to the model
             await cached_user.save_to_cache()
             return user
         return None
 
-    def list_users(self) -> List[User]:
+    async def list_users(self) -> List[User]:
         """List all users in the database."""
-        db_users = self.db.query(User).all()
+        result = await self.session.execute(select(UserDB))
+        db_users = result.scalars().all()
         return [User.model_validate(u) for u in db_users]
 
-    def add_user(self, user: User):
-        self.db.add(user)
-        self.db.commit()
+    async def add_user(self, user: User):
+        self.session.add(user)
+        await self.session.commit()
         return user
 
-    def list_all_users(self):
-        return self.db.query(User).all()
+    async def list_all_users(self):
+        result = await self.session.execute(select(UserDB))
+        return result.scalars().all()
 
     def block_user(self, chat_id: int, is_blocked: bool):
         """Block a user by their Telegram ID."""
@@ -96,7 +108,7 @@ class UserService(BaseService):
     #     logger.info("User blocked with chat_id=%d", chat_id)
 
     #     # Update cache if exists
-    #     cached_user = CachedUser.get_from_cache(chat_id)
+    #     cached_user = UserCache.get_from_cache(chat_id)
     #     if cached_user:
     #         cached_user.is_blocked = True
     #         cached_user.save_to_cache()
@@ -109,47 +121,50 @@ class UserService(BaseService):
     #     result = self.db.query(BlockedUser).filter_by(chat_id=chat_id).first()
     #     return result is not None
 
-    def is_user_temporarily_suspended(self, chat_id: int) -> bool:
+    async def is_user_temporarily_suspended(self, chat_id: int) -> bool:
         """Check if a user is temporarily suspended."""
         logger.debug("Checking if user is temporarily suspended with chat_id=%d", chat_id)
-        violation = self.db.query(InvalidLinkViolation).filter_by(chat_id=chat_id).first()
+        result = await self.session.execute(select(InvalidLinkViolation).filter_by(chat_id=chat_id))
+        violation = result.scalar_one_or_none()
         if not violation:
             return False
-        now = int(datetime.now().timestamp())
+        now = datetime.now()
         return bool(violation.suspended_until > now)
 
-    def get_suspension_remaining(self, chat_id: int) -> int:
+    async def get_suspension_remaining(self, chat_id: int) -> int:
         """Get remaining suspension time in seconds."""
         logger.debug("Getting suspension remaining for chat_id=%d", chat_id)
-        violation = self.db.query(InvalidLinkViolation).filter_by(chat_id=chat_id).first()
+        result = await self.session.execute(select(InvalidLinkViolation).filter_by(chat_id=chat_id))
+        violation = result.scalar_one_or_none()
         if not violation:
             return 0
-        now = int(datetime.now().timestamp())
-        return max(0, violation.suspended_until - now)
+        now = datetime.now()
+        remaining = (violation.suspended_until - now).total_seconds()
+        return max(0, int(remaining))
 
     async def save_user(self, user: UserCreate) -> User:
         """Save or update a user."""
         logger.debug("Saving user with chat_id=%d", user.chat_id)
-        existing = self.db.query(UserDB).filter_by(chat_id=user.chat_id).first()
+        result = await self.session.execute(select(UserDB).filter_by(chat_id=user.chat_id))
+        existing = result.scalar_one_or_none()
 
         if existing:
             for key, value in user.model_dump().items():
                 setattr(existing, key, value)
-            self.db.commit()
+            await self.session.commit()
             logger.debug("Updated existing user with chat_id=%d", user.chat_id)
             user_model = User.model_validate(existing)
         else:
             db_user = UserDB(**user.model_dump())
-            self.db.add(db_user)
-            self.db.commit()
-            self.db.refresh(db_user)
+            self.session.add(db_user)
+            await self.session.commit()
+            await self.session.refresh(db_user)
             logger.debug("Created new user with chat_id=%d", user.chat_id)
             user_model = User.model_validate(db_user)
 
         # Update cache with status
-        cached_user = CachedUser.model_validate(user_model)
-        # cached_user.is_blocked = self.is_user_blocked(user.chat_id)
-        cached_user.is_suspended = self.is_user_temporarily_suspended(user.chat_id)
-        cached_user.suspension_remaining = self.get_suspension_remaining(user.chat_id)
+        cached_user = UserCache.model_validate(user_model)
+        # Note: is_suspended and suspension_remaining are not part of UserCache model
+        # They should be handled separately or added to the model
         await cached_user.save_to_cache()
         return user_model

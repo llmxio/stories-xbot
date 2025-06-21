@@ -107,12 +107,12 @@ class RedisModel(BaseModel):
             return None
 
         json_data = json.loads(data)
-        deserialized_data = {k: cls._deserialize_value(cls, v) for k, v in json_data.items()}
+        deserialized_data = {k: cls._deserialize_value(v) for k, v in json_data.items()}
 
         return cls.model_validate(deserialized_data)
 
 
-class CachedUser(User, RedisModel):
+class UserCache(User, RedisModel):
     """User model with Redis caching capabilities."""
 
     @classmethod
@@ -121,7 +121,7 @@ class CachedUser(User, RedisModel):
         return await RedisClient.get_key(f"user:chat:{chat_id}")
 
     @classmethod
-    async def get_from_cache(cls, chat_id: int) -> Optional["CachedUser"]:
+    async def get_from_cache(cls, chat_id: int) -> Optional["UserCache"]:
         """Get user from Redis cache."""
         redis_client = get_cache()
         key = await cls.get_cache_key(chat_id)

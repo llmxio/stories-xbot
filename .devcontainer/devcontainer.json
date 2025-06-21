@@ -52,7 +52,9 @@
         "ms-python.mypy-type-checker",
         "anysphere.cursorpyright",
         "maattdd.gitless",
-        "me-dutour-mathieu.vscode-github-actions"
+        "me-dutour-mathieu.vscode-github-actions",
+        "VisualStudioExptTeam.vscodeintellicode",
+        "tamasfe.even-better-toml"
       ]
     }
   },

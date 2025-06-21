@@ -21,6 +21,7 @@ dependencies = [
   "mypy>=1.16.1",
   "asyncpg>=0.30.0",
   "ujson>=5.10.0",
+  "pyrogrammod",
 ]
 
 [tool.pytest.ini_options]
@@ -62,6 +63,9 @@ script_location = "%(here)s/alembic"
 
 # additional paths to be prepended to sys.path. defaults to the current working directory.
 prepend_sys_path = ["src"]
+
+[tool.uv.sources]
+pyrogrammod = { git = "https://github.com/PyrogramMod/PyrogramMod.git", rev = "main" }
 
 # timezone to use when rendering the date within the migration file
 # as well as the filename.

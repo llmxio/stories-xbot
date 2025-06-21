@@ -49,6 +49,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int = Field(..., description="User ID")
+    chat_id: int = Field(..., description="Chat ID")
 
     is_blocked: bool = Field(default=False, description="Is blocked")
     blocked_at: Optional[datetime] = Field(default_factory=datetime.now, description="Blocked at")

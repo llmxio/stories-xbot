@@ -6,7 +6,7 @@ from .invalid_link_violation import InvalidLinkViolation
 from .monitor import Monitor
 from .story import Story
 from .task import Task
-from .user import UserDB
+from .user import User
 
 __all__ = [
     "BaseSqlaModel",
@@ -18,5 +18,5 @@ __all__ = [
     "Monitor",
     "Story",
     "Task",
-    "UserDB",
+    "User",
 ]

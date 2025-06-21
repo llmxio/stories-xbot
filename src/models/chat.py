@@ -14,7 +14,7 @@ class ChatType(str, enum.Enum):
     CHANNEL = "channel"
 
 
-class ChatDB(BaseSqlaModel):
+class Chat(BaseSqlaModel):
     __tablename__ = "chat"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False, index=True)
