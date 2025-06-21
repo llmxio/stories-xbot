@@ -39,14 +39,10 @@
     "vscode": {
       "settings": {},
       "extensions": [
-        "ms-vscode.cpptools@prerelease",
-        "vadimcn.vscode-lldb",
-        "matepek.vscode-catch2-test-adapter",
-        "zxh404.vscode-proto3",
         "twxs.cmake",
-        "maattdd.gitless",
         "humao.rest-client",
         "swindh.enumerator",
+        "zxh404.vscode-proto3",
         "timonwong.shellcheck",
         "dbcode.dbcode",
         "ms-python.pylint",
@@ -55,6 +51,7 @@
         "Redis.redis-for-vscode",
         "ms-python.mypy-type-checker",
         "anysphere.cursorpyright",
+        "maattdd.gitless",
         "me-dutour-mathieu.vscode-github-actions"
       ]
     }

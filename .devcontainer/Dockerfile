@@ -23,6 +23,8 @@ ENV LANG=en_US.UTF-8 \
 RUN dnf install -y \
     sudo \
     bash-completion \
+    bash-color-prompt \
+    color-filesystem \
     git \
     vim \
     openssh-clients \
