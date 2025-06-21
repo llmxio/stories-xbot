@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 # pyright: reportAttributeAccessIssue=false,reportUnknownVariableType=false
 # pylint: disable=no-name-in-module,import-error
 from alembic import context
-from models.models import Base
+from models import BaseSqlaModel
 
 # add src to sys.path
 # sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "../src")))
@@ -24,7 +24,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 
-target_metadata = Base.metadata
+target_metadata = BaseSqlaModel.metadata
 
 
 # other values from the config, defined by the needs of env.py,
