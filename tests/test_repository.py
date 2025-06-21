@@ -3,8 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from db.schemas import UserCreate
-from models import BaseDbModel, Chat, ChatType, User as UserDB
-from services import UserService as UserService
+from models import BaseDbModel, Chat, ChatType
+from services import UserService
 
 
 @pytest.fixture(name="db_session", scope="function")
